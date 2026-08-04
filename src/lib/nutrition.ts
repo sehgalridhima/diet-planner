@@ -162,9 +162,17 @@ export function calculateMacros(
   calories: number,
   weightKg: number,
   goal: Goal,
+  /**
+   * Weight to base protein on. For someone above a healthy weight this
+   * should be the top of their healthy range, not what they weigh now —
+   * stored body fat has no protein requirement, so using current weight
+   * sets a target that is both unnecessary and, on a vegetarian Indian
+   * diet at a deficit, close to unreachable.
+   */
+  referenceWeightKg: number = weightKg,
 ): Macros {
   const proteinPerKg = goal === "lose" ? 1.8 : goal === "gain" ? 1.7 : 1.4;
-  const proteinG = Math.round(weightKg * proteinPerKg);
+  const proteinG = Math.round(referenceWeightKg * proteinPerKg);
 
   const fatFromPercent = (calories * 0.25) / 9;
   const fatFloor = weightKg * 0.7;
@@ -256,11 +264,16 @@ export function buildNutritionPlan(input: UserInput): NutritionPlan {
     );
   }
 
+  // Protein is based on the top of the healthy weight range when someone is
+  // above it — see calculateMacros. Below or inside the range, actual weight.
+  const range = healthyWeightRange(input.heightCm);
+  const referenceWeightKg = Math.min(input.weightKg, range.max);
+
   return {
     bmr,
     tdee,
     calories,
-    macros: calculateMacros(calories, input.weightKg, input.goal),
+    macros: calculateMacros(calories, input.weightKg, input.goal, referenceWeightKg),
     bmi: Number(bmi.toFixed(1)),
     bmiCategory: category,
     healthyWeightRange: healthyWeightRange(input.heightCm),
