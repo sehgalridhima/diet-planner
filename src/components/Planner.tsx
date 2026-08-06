@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { ACTIVITY_OPTIONS, type NutritionPlan } from "@/lib/nutrition";
 import { DIET_OPTIONS, type DietType, type MealPlan } from "@/lib/plan-types";
+import { EQUIPMENT_OPTIONS } from "@/lib/workout-planner";
+import PlanView from "@/components/PlanView";
 
 type HeightUnit = "cm" | "ft";
 
@@ -20,12 +22,7 @@ const GOALS = [
   { value: "gain", label: "Build muscle" },
 ] as const;
 
-const EQUIPMENT = [
-  "Bodyweight only",
-  "Dumbbells at home",
-  "Full gym",
-  "Resistance bands",
-];
+const EQUIPMENT = EQUIPMENT_OPTIONS.map((o) => o.label);
 
 export default function Planner() {
   const [heightUnit, setHeightUnit] = useState<HeightUnit>("cm");
@@ -36,6 +33,7 @@ export default function Planner() {
     feet: "",
     inches: "",
     weightKg: "",
+    measuredBmr: "",
     activity: "sedentary",
     goal: "lose",
     diet: "veg" as DietType,
@@ -71,6 +69,7 @@ export default function Planner() {
           sex: form.sex,
           heightCm: resolvedHeightCm(),
           weightKg: Number(form.weightKg),
+          measuredBmr: form.measuredBmr === "" ? undefined : Number(form.measuredBmr),
           activity: form.activity,
           goal: form.goal,
           diet: form.diet,
@@ -195,6 +194,23 @@ export default function Planner() {
             />
           </Field>
 
+          <Field label="Measured BMR" hint="optional">
+            <input
+              type="number"
+              inputMode="numeric"
+              min={600}
+              max={4500}
+              value={form.measuredBmr}
+              onChange={(e) => set("measuredBmr", e.target.value)}
+              className={fieldClass}
+              placeholder="leave blank to calculate it"
+            />
+            <span className="text-xs text-muted">
+              Only if you have a real one — from a smart scale, a DEXA scan or a metabolic test.
+              Left blank we work it out from your height, weight, age and sex.
+            </span>
+          </Field>
+
           <Field label="Activity level" hint="be honest, not aspirational">
             <select
               value={form.activity}
@@ -271,7 +287,15 @@ export default function Planner() {
       </form>
 
       {/* ---------------- RESULTS ---------------- */}
-      {result && <Results data={result} />}
+      {result && (
+        <PlanView
+          plan={result.plan}
+          nutrition={result.nutrition}
+          todayIndex={todayIndex()}
+          cached={result.cached}
+          notice={result.notice}
+        />
+      )}
     </div>
   );
 }
@@ -324,183 +348,7 @@ function Chip({
   );
 }
 
-function Results({ data }: { data: ApiResponse }) {
-  const { plan, nutrition } = data;
-  const totalCalories = plan.meals.reduce((sum, m) => sum + m.calories, 0);
-  const totalProtein = plan.meals.reduce((sum, m) => sum + m.proteinG, 0);
-
-  return (
-    <section className="animate-rise flex flex-col gap-8">
-      {/* Safety warnings come before anything else */}
-      {nutrition.warnings.length > 0 && (
-        <div className="rounded-2xl border border-warn/40 bg-warn-soft p-5">
-          <h2 className="text-sm font-semibold text-warn">Worth reading first</h2>
-          <ul className="mt-2.5 flex flex-col gap-2">
-            {nutrition.warnings.map((warning, i) => (
-              <li key={i} className="text-sm leading-relaxed text-warn">
-                {warning}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {data.notice && (
-        <p className="rounded-xl border border-border bg-surface px-4 py-3 text-sm text-muted">
-          {data.notice}
-        </p>
-      )}
-
-      {/* ---- Numbers ---- */}
-      <div>
-        <h2 className="text-lg font-semibold tracking-tight">Your numbers</h2>
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Stat label="Daily calories" value={`${nutrition.calories}`} unit="kcal" primary />
-          <Stat label="Protein" value={`${nutrition.macros.proteinG}`} unit="g" />
-          <Stat label="Carbs" value={`${nutrition.macros.carbsG}`} unit="g" />
-          <Stat label="Fat" value={`${nutrition.macros.fatG}`} unit="g" />
-        </div>
-
-        <dl className="mt-4 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
-          <Row label="BMR (at complete rest)" value={`${nutrition.bmr} kcal`} />
-          <Row label="TDEE (with your activity)" value={`${nutrition.tdee} kcal`} />
-          <Row label="BMI" value={`${nutrition.bmi} — ${nutrition.bmiCategory}`} />
-          <Row
-            label="Healthy weight for your height"
-            value={`${nutrition.healthyWeightRange.min}–${nutrition.healthyWeightRange.max} kg`}
-          />
-          {nutrition.weeklyChangeKg !== 0 && (
-            <Row
-              label="Expected change"
-              value={`${nutrition.weeklyChangeKg > 0 ? "+" : ""}${nutrition.weeklyChangeKg} kg per week`}
-            />
-          )}
-        </dl>
-      </div>
-
-      {/* ---- Meals ---- */}
-      <div>
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-lg font-semibold tracking-tight">Your day of eating</h2>
-          <p className="text-xs text-muted">
-            {totalCalories} kcal · {totalProtein}g protein
-          </p>
-        </div>
-
-        <div className="mt-4 flex flex-col gap-3">
-          {plan.meals.map((meal) => (
-            <div key={meal.slot} className="rounded-2xl border border-border bg-surface p-5">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h3 className="font-medium">{meal.slot}</h3>
-                <p className="font-mono text-xs text-muted">
-                  {meal.calories} kcal · {meal.proteinG}g protein
-                </p>
-              </div>
-              <ul className="mt-3 flex flex-col gap-1">
-                {meal.items.map((item, i) => (
-                  <li key={i} className="text-sm text-muted">
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              {meal.swap && (
-                <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
-                  <span className="font-medium text-foreground">Don&rsquo;t want this? </span>
-                  {meal.swap}
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ---- Workout ---- */}
-      {plan.workout.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight">Your week of training</h2>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {plan.workout.map((day) => (
-              <div key={day.day} className="rounded-2xl border border-border bg-surface p-4">
-                <div className="flex items-baseline gap-2">
-                  <span className="font-mono text-xs text-accent">{day.day}</span>
-                  <h3 className="text-sm font-medium">{day.focus}</h3>
-                </div>
-                <ul className="mt-2 flex flex-col gap-1">
-                  {day.exercises.map((exercise, i) => (
-                    <li key={i} className="text-sm text-muted">
-                      {exercise}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ---- Notes ---- */}
-      {plan.notes.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight">Worth remembering</h2>
-          <ul className="mt-4 flex flex-col gap-2.5">
-            {plan.notes.map((note, i) => (
-              <li key={i} className="flex gap-3 text-sm leading-relaxed text-muted">
-                <span className="text-accent">—</span>
-                {note}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <footer className="rounded-2xl border border-border bg-surface-2 p-5 text-xs leading-relaxed text-muted">
-        <p>
-          <strong className="text-foreground">This is not medical advice.</strong> Calories and
-          macros are estimates from the Mifflin-St Jeor equation, which is a good starting point
-          and not a measurement. If you are pregnant, managing a medical condition, or on
-          medication, talk to a doctor before changing how you eat.
-        </p>
-        <p className="mt-2.5">
-          Meals came from {plan.source === "ai" ? "Claude" : "the built-in planner"}
-          {data.cached && ", served from cache"}. The numbers above are calculated in code, not
-          generated, so they are the same every time.
-        </p>
-      </footer>
-    </section>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  unit,
-  primary,
-}: {
-  label: string;
-  value: string;
-  unit: string;
-  primary?: boolean;
-}) {
-  return (
-    <div
-      className={`rounded-2xl border p-4 ${
-        primary ? "border-accent/30 bg-accent-soft" : "border-border bg-surface"
-      }`}
-    >
-      <p className="text-xs text-muted">{label}</p>
-      <p className={`mt-1 text-2xl font-semibold tracking-tight ${primary ? "text-accent" : ""}`}>
-        {value}
-        <span className="ml-1 text-sm font-normal text-muted">{unit}</span>
-      </p>
-    </div>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between gap-4 border-b border-border py-2">
-      <dt className="text-muted">{label}</dt>
-      <dd className="text-right font-medium">{value}</dd>
-    </div>
-  );
+/** Monday-first index for today, because the plan weeks start on Monday. */
+function todayIndex(): number {
+  return (new Date().getDay() + 6) % 7;
 }

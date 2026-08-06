@@ -1,6 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { DietType, MealPlan } from "@/lib/plan-types";
-import type { Goal, NutritionPlan } from "@/lib/nutrition";
+import { MEAL_SLOTS, type DietType, type Dish, type MealPlan, type MealPool } from "@/lib/plan-types";
+import type { Goal, NutritionPlan, UserInput } from "@/lib/nutrition";
+import { assembleWeek } from "@/lib/week";
+import { buildWorkout, type Equipment } from "@/lib/workout-planner";
 
 /* ===============================================================
    AI PLANNER — the only file that spends API credit
@@ -18,6 +20,13 @@ import type { Goal, NutritionPlan } from "@/lib/nutrition";
    4. The MATH IS NOT THE MODEL'S JOB. Calories, macros and safety
       limits are already computed. Claude only chooses food that fits
       the numbers it is handed.
+   5. THE WORKOUT NEVER COMES FROM HERE. A training split is a lookup
+      and a few rules, so workout-planner.ts builds it in code for
+      free. Dropping it from this response paid for most of the extra
+      tokens the week of meals costs.
+   6. CLAUDE RETURNS A POOL, NOT A WEEK. Seven dishes per slot, and
+      week.ts assembles the days. Asking for seven finished days would
+      repeat every target and every swap seven times over.
 
    If a call fails for any reason, the caller falls back to the
    built-in planner — a user never sees an error page.
@@ -25,14 +34,19 @@ import type { Goal, NutritionPlan } from "@/lib/nutrition";
 
 const MODEL = "claude-opus-5";
 
+/** One dish per day of the week, per slot. */
+const DISHES_PER_SLOT = 7;
+
 /**
  * Kept byte-identical across requests so the prompt cache always hits.
  * Do not interpolate user data, dates, or anything else in here —
  * a single changed character invalidates the cache for every user.
  */
-const SYSTEM_PROMPT = `You are a careful Indian nutritionist building a single day of eating for one person.
+const SYSTEM_PROMPT = `You are a careful Indian nutritionist choosing food for one person's week.
 
 You are given calorie and macro targets that have already been calculated and safety-checked. Treat them as fixed. Your only job is choosing food that fits them.
+
+You return a POOL of dish options for each meal slot, not a finished plan. Software downstream picks which dish lands on which day and adjusts portions. So every dish you return must be a complete, standalone option for that slot — not a half meal, and not a variation on the dish above it.
 
 RULES
 
@@ -44,56 +58,56 @@ RULES
 
 4. Respect the diet type absolutely. Vegetarian means no egg and no meat. Eggetarian allows egg but no meat. Vegan excludes dairy entirely, which rules out curd, milk, paneer and ghee. A single violation makes the whole plan useless to the person reading it.
 
-5. Every meal needs a swap. Give one genuinely different alternative at roughly the same calories, so the person has somewhere to go on a day they do not want what is listed.
+5. The dishes within a slot must be genuinely different from each other. This is the whole point of the pool — it is what stops someone eating the same breakfast seven mornings running. Vary the grain, the protein source and the region. Two dishes that differ only by the sabzi are one dish.
 
-6. Meal calories should add up to close to the daily target. Being within about fifty calories is fine; being far off is not.
+6. Every dish should land near the per-dish calorie target you are given for that slot. Within about fifty calories is fine.
 
-7. Notes must be practical and specific to this person's plan. No generic wellness advice, no motivational filler, no medical claims. Four notes at most.
+7. Calories and protein must be your honest estimate for the portion you wrote. Do not round everything to the target — if a dish comes in low, say so in the number.
 
-8. Never suggest supplements, medication, fasting protocols, or anything that would need a doctor's supervision.
+8. Notes must be practical and specific to this person's plan. No generic wellness advice, no motivational filler, no medical claims. Four notes at most. Say nothing about exercise: the training plan is built elsewhere and you have not seen it.
+
+9. Never suggest supplements, medication, fasting protocols, or anything that would need a doctor's supervision.
 
 Write in plain, warm English. Short sentences. Assume the reader is busy and slightly sceptical of diet plans, because they have been given useless ones before.`;
+
+const DISH_SCHEMA = {
+  type: "array",
+  items: {
+    type: "object",
+    properties: {
+      items: {
+        type: "array",
+        items: { type: "string" },
+        description: "Each item as a portion, e.g. '2 roti' or '1 katori dal'",
+      },
+      calories: { type: "integer" },
+      proteinG: { type: "integer" },
+    },
+    required: ["items", "calories", "proteinG"],
+    additionalProperties: false,
+  },
+} as const;
 
 const PLAN_SCHEMA = {
   type: "object",
   properties: {
-    meals: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          slot: { type: "string", enum: ["Breakfast", "Lunch", "Snack", "Dinner"] },
-          items: {
-            type: "array",
-            items: { type: "string" },
-            description: "Each item as a portion, e.g. '2 roti' or '1 katori dal'",
-          },
-          calories: { type: "integer" },
-          proteinG: { type: "integer" },
-          swap: { type: "string", description: "One alternative at similar calories" },
-        },
-        required: ["slot", "items", "calories", "proteinG", "swap"],
-        additionalProperties: false,
-      },
-    },
-    workout: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          day: { type: "string" },
-          focus: { type: "string" },
-          exercises: { type: "array", items: { type: "string" } },
-        },
-        required: ["day", "focus", "exercises"],
-        additionalProperties: false,
-      },
-    },
+    breakfast: DISH_SCHEMA,
+    lunch: DISH_SCHEMA,
+    snack: DISH_SCHEMA,
+    dinner: DISH_SCHEMA,
     notes: { type: "array", items: { type: "string" } },
   },
-  required: ["meals", "workout", "notes"],
+  required: ["breakfast", "lunch", "snack", "dinner", "notes"],
   additionalProperties: false,
 } as const;
+
+type AiPool = {
+  breakfast: Dish[];
+  lunch: Dish[];
+  snack: Dish[];
+  dinner: Dish[];
+  notes: string[];
+};
 
 const DIET_LABEL: Record<DietType, string> = {
   veg: "Vegetarian (no egg, no meat)",
@@ -123,11 +137,19 @@ export function hasApiKey(): boolean {
 
 export async function buildAiPlan(
   nutrition: NutritionPlan,
+  input: UserInput,
   diet: DietType,
-  goal: Goal,
-  equipment: string,
+  equipment: Equipment,
 ): Promise<AiResult> {
   const client = new Anthropic();
+
+  // Per-dish targets, so Claude aims at a meal rather than a day.
+  const perSlot = MEAL_SLOTS.map((slot) => {
+    const share = slot === "Breakfast" ? 0.25 : slot === "Lunch" ? 0.35 : slot === "Snack" ? 0.1 : 0.3;
+    return `- ${slot}: about ${Math.round(nutrition.calories * share)} kcal and ${Math.round(
+      nutrition.macros.proteinG * share,
+    )} g protein per dish`;
+  }).join("\n");
 
   const response = await client.messages.create({
     model: MODEL,
@@ -148,7 +170,7 @@ export async function buildAiPlan(
     messages: [
       {
         role: "user",
-        content: `Build one day of eating and a weekly workout split.
+        content: `Give ${DISHES_PER_SLOT} dish options for each meal slot.
 
 Daily targets (already calculated — do not recalculate):
 - Calories: ${nutrition.calories} kcal
@@ -156,12 +178,14 @@ Daily targets (already calculated — do not recalculate):
 - Carbohydrate: ${nutrition.macros.carbsG} g
 - Fat: ${nutrition.macros.fatG} g
 
-Person:
-- Goal: ${GOAL_LABEL[goal]}
-- Diet: ${DIET_LABEL[diet]}
-- Equipment available: ${equipment}
+Per-dish targets:
+${perSlot}
 
-Give four meals (Breakfast, Lunch, Snack, Dinner) and a seven-day workout split using only the equipment listed.`,
+Person:
+- Goal: ${GOAL_LABEL[input.goal]}
+- Diet: ${DIET_LABEL[diet]}
+
+Return ${DISHES_PER_SLOT} clearly different options for breakfast, lunch, snack and dinner.`,
       },
     ],
   });
@@ -171,10 +195,39 @@ Give four meals (Breakfast, Lunch, Snack, Dinner) and a seven-day workout split 
     throw new Error("Claude returned no text block");
   }
 
-  const parsed = JSON.parse(textBlock.text) as Omit<MealPlan, "source">;
+  const parsed = JSON.parse(textBlock.text) as AiPool;
+
+  const pool: MealPool = {
+    Breakfast: parsed.breakfast,
+    Lunch: parsed.lunch,
+    Snack: parsed.snack,
+    Dinner: parsed.dinner,
+  };
+
+  // An empty slot would silently drop a meal from all seven days.
+  for (const slot of MEAL_SLOTS) {
+    if (!pool[slot] || pool[slot].length === 0) {
+      throw new Error(`Claude returned no dishes for ${slot}`);
+    }
+  }
+
+  const days = assembleWeek(pool, nutrition.calories, nutrition.macros.proteinG);
+
+  const workout = buildWorkout({
+    goal: input.goal,
+    activity: input.activity,
+    age: input.age,
+    equipment,
+    lowImpactOnly: input.age >= 55 || nutrition.bmi >= 30,
+  });
 
   return {
-    plan: { ...parsed, source: "ai" },
+    plan: {
+      days,
+      workout: workout.days,
+      notes: [...parsed.notes, ...workout.notes],
+      source: "ai",
+    },
     usage: {
       inputTokens: response.usage.input_tokens,
       outputTokens: response.usage.output_tokens,

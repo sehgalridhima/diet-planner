@@ -29,6 +29,16 @@ export type UserInput = {
   weightKg: number;
   activity: ActivityLevel;
   goal: Goal;
+  /**
+   * A measured BMR, if the person has one — from a smart scale, a
+   * metabolic cart, or a DEXA scan.
+   *
+   * Mifflin-St Jeor is a population estimate and can be 10–15% out for
+   * any individual, so a real measurement beats it whenever one exists.
+   * Left undefined, everything falls back to the formula exactly as
+   * before.
+   */
+  measuredBmr?: number;
 };
 
 export const ACTIVITY_OPTIONS: {
@@ -89,8 +99,15 @@ export type Macros = {
   fatG: number;
 };
 
+export type BmrSource = "measured" | "estimated";
+
 export type NutritionPlan = {
+  /** The BMR actually used — measured if one was given, else estimated */
   bmr: number;
+  /** Where that number came from, so the UI never has to guess */
+  bmrSource: BmrSource;
+  /** What Mifflin-St Jeor predicts, kept for comparison */
+  estimatedBmr: number;
   tdee: number;
   /** Daily calorie target after the goal adjustment and safety clamp */
   calories: number;
@@ -118,9 +135,22 @@ export function calculateBMR(input: UserInput): number {
   return sex === "male" ? base + 5 : base - 161;
 }
 
+/**
+ * The BMR everything downstream should use: the measured one when it
+ * has been given, the formula otherwise.
+ *
+ * Kept separate from calculateBMR so the estimate stays available for
+ * comparison — a measured value wildly adrift of the formula is more
+ * likely a typo or a wrong unit than a remarkable metabolism, and we
+ * warn about it rather than silently building a plan on it.
+ */
+export function effectiveBMR(input: UserInput): number {
+  return input.measuredBmr ?? calculateBMR(input);
+}
+
 /** Total daily energy expenditure — BMR scaled by how active someone is */
 export function calculateTDEE(input: UserInput): number {
-  const bmr = calculateBMR(input);
+  const bmr = effectiveBMR(input);
   const option = ACTIVITY_OPTIONS.find((o) => o.value === input.activity);
   return bmr * (option?.multiplier ?? 1.2);
 }
@@ -189,7 +219,9 @@ export function calculateMacros(
  * This is the only function the rest of the app should need.
  */
 export function buildNutritionPlan(input: UserInput): NutritionPlan {
-  const bmr = Math.round(calculateBMR(input));
+  const bmr = Math.round(effectiveBMR(input));
+  const estimatedBmr = Math.round(calculateBMR(input));
+  const bmrSource: BmrSource = input.measuredBmr ? "measured" : "estimated";
   const tdee = Math.round(calculateTDEE(input));
   const bmi = calculateBMI(input);
   const category = bmiCategory(bmi);
@@ -252,6 +284,25 @@ export function buildNutritionPlan(input: UserInput): NutritionPlan {
     );
   }
 
+  /*
+   * A measured BMR should be close to the formula. Real individual
+   * variation runs to maybe 15%; a number 25% adrift is far more often
+   * a typo, a resting heart-rate reading, or a device reporting TDEE
+   * and calling it BMR. We use what was given — it is their data — but
+   * we say plainly that it looks wrong, because every calorie number
+   * below it inherits the error.
+   */
+  if (bmrSource === "measured") {
+    const drift = Math.round(((bmr - estimatedBmr) / estimatedBmr) * 100);
+    if (Math.abs(drift) >= 25) {
+      warnings.push(
+        `The BMR you entered (${bmr} kcal) is ${Math.abs(drift)}% ${
+          drift > 0 ? "higher" : "lower"
+        } than the ${estimatedBmr} kcal your height, weight, age and sex predict. That is a big gap — worth checking you have not entered your total daily burn instead of your resting rate. Your plan is built on the number you gave.`,
+      );
+    }
+  }
+
   if (input.age < 18) {
     warnings.push(
       "These formulas are built for adults. If you're under 18, please check with a doctor before following a calorie target.",
@@ -271,6 +322,8 @@ export function buildNutritionPlan(input: UserInput): NutritionPlan {
 
   return {
     bmr,
+    bmrSource,
+    estimatedBmr,
     tdee,
     calories,
     macros: calculateMacros(calories, input.weightKg, input.goal, referenceWeightKg),
@@ -292,6 +345,13 @@ export const LIMITS = {
   age: { min: 13, max: 100 },
   heightCm: { min: 120, max: 230 },
   weightKg: { min: 30, max: 300 },
+  /*
+   * Wide on purpose. This is a hard reject for values that cannot be a
+   * BMR at all; the 25% drift warning is what catches the merely
+   * suspicious ones. Rejecting a real outlier outright would be worse
+   * than flagging it.
+   */
+  measuredBmr: { min: 600, max: 4500 },
 };
 
 export function validateInput(input: Partial<UserInput>): string[] {
@@ -325,6 +385,19 @@ export function validateInput(input: Partial<UserInput>): string[] {
   }
   if (!["lose", "maintain", "gain"].includes(input.goal ?? "")) {
     errors.push("Please select a goal.");
+  }
+
+  // Optional: absent is fine, present but nonsensical is not.
+  if (input.measuredBmr !== undefined && input.measuredBmr !== null) {
+    const { min, max } = LIMITS.measuredBmr;
+    if (
+      typeof input.measuredBmr !== "number" ||
+      Number.isNaN(input.measuredBmr) ||
+      input.measuredBmr < min ||
+      input.measuredBmr > max
+    ) {
+      errors.push(`If you enter a measured BMR it should be between ${min} and ${max} kcal.`);
+    }
   }
 
   return errors;

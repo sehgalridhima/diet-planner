@@ -1,39 +1,30 @@
 import { NextResponse } from "next/server";
-import {
-  buildNutritionPlan,
-  validateInput,
-  type Goal,
-  type NutritionPlan,
-  type UserInput,
-} from "@/lib/nutrition";
-import { buildBuiltinPlan } from "@/lib/builtin-planner";
-import { buildAiPlan, estimateCostInr, hasApiKey } from "@/lib/ai-planner";
-import type { DietType, MealPlan } from "@/lib/plan-types";
+import { validateInput, type Goal, type UserInput } from "@/lib/nutrition";
+import { buildPlan } from "@/lib/build-plan";
+import { parseEquipment } from "@/lib/workout-planner";
+import type { DietType } from "@/lib/plan-types";
 
 /* ===============================================================
-   PLAN API
+   PLAN API — for anonymous visitors filling in the form
    ===============================================================
-   Three guards stand between a request and an API charge:
+   Signed-in users go through /today instead, which reads their
+   saved profile and calls buildPlan directly.
 
-     1. Rate limit  — one IP gets RATE_LIMIT plans an hour.
-     2. Cache       — identical inputs return the stored plan, free.
-     3. Fallback    — no key, or a failed call, uses the built-in
-                      planner rather than failing.
+   Three guards stand between a request and an API charge. Two of
+   them (cache, fallback) live in build-plan.ts because the signed-in
+   path needs them too. The third is here:
 
-   The cache and rate limiter live in memory. On serverless each
-   instance keeps its own copy, so both are best-effort rather than
-   exact — good enough to stop a person hammering the form, not a
-   substitute for the spend limit set in the Anthropic console.
+     Rate limit — one IP gets RATE_LIMIT fresh plans an hour.
+
+   It belongs to the HTTP client rather than to the plan, and it must
+   not follow a signed-in user around: being refused your own plan
+   because a stranger behind the same NAT filled in the form five
+   times would be indefensible.
    =============================================================== */
 
 const RATE_LIMIT = 5;
 const RATE_WINDOW_MS = 60 * 60 * 1000;
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
-const CACHE_MAX_ENTRIES = 500;
 
-type CacheEntry = { plan: MealPlan; nutrition: NutritionPlan; storedAt: number };
-
-const cache = new Map<string, CacheEntry>();
 const hits = new Map<string, number[]>();
 
 function clientKey(request: Request): string {
@@ -53,41 +44,6 @@ function rateLimited(key: string): boolean {
   return false;
 }
 
-/**
- * Inputs are rounded before they become the cache key, so people who
- * are close to each other share a plan instead of each paying for one.
- */
-function cacheKey(input: UserInput, diet: DietType, equipment: string): string {
-  return [
-    Math.round(input.age / 5) * 5,
-    input.sex,
-    Math.round(input.heightCm / 5) * 5,
-    Math.round(input.weightKg / 5) * 5,
-    input.activity,
-    input.goal,
-    diet,
-    equipment,
-  ].join("|");
-}
-
-function readCache(key: string): CacheEntry | null {
-  const entry = cache.get(key);
-  if (!entry) return null;
-  if (Date.now() - entry.storedAt > CACHE_TTL_MS) {
-    cache.delete(key);
-    return null;
-  }
-  return entry;
-}
-
-function writeCache(key: string, entry: CacheEntry) {
-  if (cache.size >= CACHE_MAX_ENTRIES) {
-    const oldest = cache.keys().next().value;
-    if (oldest) cache.delete(oldest);
-  }
-  cache.set(key, entry);
-}
-
 export async function POST(request: Request) {
   let body: Record<string, unknown>;
   try {
@@ -103,6 +59,11 @@ export async function POST(request: Request) {
     weightKg: Number(body.weightKg),
     activity: body.activity as UserInput["activity"],
     goal: body.goal as Goal,
+    // Optional. An empty field must read as "not given", not as zero.
+    measuredBmr:
+      body.measuredBmr === undefined || body.measuredBmr === null || body.measuredBmr === ""
+        ? undefined
+        : Number(body.measuredBmr),
   };
 
   const errors = validateInput(input);
@@ -121,42 +82,18 @@ export async function POST(request: Request) {
   }
 
   const validInput = input as UserInput;
-  const nutrition = buildNutritionPlan(validInput);
-  const key = cacheKey(validInput, diet, equipment);
+  const kit = parseEquipment(equipment);
+  const limited = rateLimited(clientKey(request));
 
-  // 1. Cache — free, and instant
-  const cached = readCache(key);
-  if (cached) {
-    return NextResponse.json({ ...cached, cached: true });
-  }
+  const result = await buildPlan(validInput, diet, kit, { allowAi: !limited });
 
-  // 2. Rate limit — only reached when this would be a fresh generation
-  if (rateLimited(clientKey(request))) {
-    const fallback = buildBuiltinPlan(nutrition, diet, validInput.goal);
-    return NextResponse.json({
-      plan: fallback,
-      nutrition,
-      cached: false,
-      notice:
-        "You have reached the hourly limit for AI-generated plans. This plan came from the built-in planner instead — the numbers are identical, the food choices are less tailored.",
-    });
-  }
-
-  // 3. Generate
-  if (hasApiKey()) {
-    try {
-      const { plan, usage } = await buildAiPlan(nutrition, diet, validInput.goal, equipment);
-      writeCache(key, { plan, nutrition, storedAt: Date.now() });
-      console.log(
-        `[plan] AI ok — in ${usage.inputTokens}, cached-in ${usage.cacheReadTokens}, out ${usage.outputTokens}, approx Rs.${estimateCostInr(usage).toFixed(2)}`,
-      );
-      return NextResponse.json({ plan, nutrition, cached: false });
-    } catch (error) {
-      console.error("[plan] AI failed, using built-in planner:", error);
-    }
-  }
-
-  const plan = buildBuiltinPlan(nutrition, diet, validInput.goal);
-  writeCache(key, { plan, nutrition, storedAt: Date.now() });
-  return NextResponse.json({ plan, nutrition, cached: false });
+  return NextResponse.json({
+    ...result,
+    ...(limited && !result.cached
+      ? {
+          notice:
+            "You have reached the hourly limit for AI-generated plans. This plan came from the built-in planner instead — the numbers are identical, the food choices are less tailored.",
+        }
+      : {}),
+  });
 }
