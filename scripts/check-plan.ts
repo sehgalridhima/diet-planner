@@ -2,7 +2,8 @@ import { buildNutritionPlan, validateInput, type ActivityLevel, type Goal, type 
 import { buildBuiltinPlan, buildPool, optionCounts } from "../src/lib/builtin-planner";
 import { assembleWeek } from "../src/lib/week";
 import { AVAILABLE, EQUIPMENT_OPTIONS, EXERCISES, buildWorkout, parseEquipment, trainingFrequency, type Equipment } from "../src/lib/workout-planner";
-import { DAYS, MEAL_SLOTS, type DietType } from "../src/lib/plan-types";
+import { DAYS, MEAL_SLOTS, type DietType, type MealPool } from "../src/lib/plan-types";
+import { topUpPool } from "../src/lib/ai-planner";
 import { buildGroceryList, parsePortion } from "../src/lib/grocery";
 
 /* ===============================================================
@@ -47,9 +48,19 @@ for (const diet of DIETS) {
 
 /* --- 2. Diets are respected ------------------------------------ */
 
-/** Strip the compounds that merely contain a forbidden word. */
+/**
+ * Strip the compounds that merely contain a forbidden word.
+ *
+ * "soya milk" has to be here as well as "soy milk": Claude writes it
+ * both ways, and only stripping one spelling reports a perfectly good
+ * vegan dish as a dairy violation.
+ */
 function normalise(text: string): string {
-  return text.toLowerCase().replace(/soy milk/g, "").replace(/peanut butter/g, "");
+  return text
+    .toLowerCase()
+    .replace(/soya milk/g, "")
+    .replace(/soy milk/g, "")
+    .replace(/peanut butter/g, "");
 }
 
 const FORBIDDEN: Record<DietType, string[]> = {
@@ -349,7 +360,65 @@ for (const [raw, qty, unit, text] of [
   );
 }
 
-/* --- 9. A full plan builds end to end --------------------------- */
+/* --- 9. A thin AI pool is topped up ----------------------------- */
+
+/*
+ * A real vegan plan came back from Claude with five distinct lunches
+ * for seven days, and the rotation repeated two of them. The schema
+ * can ask for seven options but cannot require them to differ, so the
+ * backstop is code rather than a politely worded prompt.
+ */
+console.log("\n=== A thin or duplicated AI pool is topped up");
+{
+  const dish = (name: string, calories = 400, proteinG = 20) => ({
+    items: [name],
+    calories,
+    proteinG,
+  });
+
+  const thin: MealPool = {
+    Breakfast: [dish("1 bowl poha"), dish("1 bowl poha"), dish("2 idli")],
+    Lunch: [dish("2 roti and dal")],
+    Snack: [dish("1 apple")],
+    Dinner: [dish("1 bowl khichdi"), dish("1 BOWL KHICHDI")],
+  };
+
+  topUpPool(thin, "vegan");
+
+  for (const slot of MEAL_SLOTS) {
+    const signatures = new Set(thin[slot].map((d) => d.items.join("|").toLowerCase()));
+    check(
+      `${slot.padEnd(10)} filled to ${thin[slot].length}, all distinct`,
+      thin[slot].length === DAYS.length && signatures.size === thin[slot].length,
+      `${thin[slot].length} dishes, ${signatures.size} distinct`,
+    );
+  }
+
+  check(
+    "case-only duplicates are treated as the same dish",
+    !thin.Dinner.some(
+      (d, i) => thin.Dinner.findIndex((o) => o.items.join().toLowerCase() === d.items.join().toLowerCase()) !== i,
+    ),
+  );
+
+  check(
+    "Claude's own dishes are kept ahead of the table's",
+    thin.Breakfast[0].items[0] === "1 bowl poha" && thin.Breakfast[1].items[0] === "2 idli",
+    thin.Breakfast.map((d) => d.items[0]).join(" / "),
+  );
+
+  // The top-up must not smuggle dairy into a vegan plan.
+  const dairy = ["curd", "paneer", "milk", "chaas", "buttermilk", "raita"];
+  const leaked = MEAL_SLOTS.flatMap((slot) =>
+    thin[slot].filter((d) => {
+      const t = d.items.join(" ").toLowerCase().replace(/soy milk/g, "");
+      return dairy.some((w) => t.includes(w));
+    }),
+  );
+  check("topped-up vegan pool contains no dairy", leaked.length === 0, JSON.stringify(leaked));
+}
+
+/* --- 10. A full plan builds end to end -------------------------- */
 
 console.log("\n=== Full plan build");
 for (const diet of DIETS) {

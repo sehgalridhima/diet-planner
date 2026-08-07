@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { MEAL_SLOTS, type DietType, type Dish, type MealPlan, type MealPool } from "@/lib/plan-types";
 import type { Goal, NutritionPlan, UserInput } from "@/lib/nutrition";
 import { assembleWeek } from "@/lib/week";
+import { buildPool } from "@/lib/builtin-planner";
 import { buildWorkout, type Equipment } from "@/lib/workout-planner";
 
 /* ===============================================================
@@ -135,6 +136,55 @@ export function hasApiKey(): boolean {
   return Boolean(process.env.ANTHROPIC_API_KEY);
 }
 
+/** Two dishes are the same dish if they list the same things. */
+function signature(dish: Dish): string {
+  return dish.items
+    .map((i) => i.trim().toLowerCase())
+    .sort()
+    .join("|");
+}
+
+/**
+ * Removes duplicates from Claude's pool and refills any slot left
+ * short from the built-in table.
+ *
+ * The schema asks for seven options per slot but cannot require them
+ * to be different, and asking nicely in the prompt is not a guarantee
+ * — a real vegan plan came back with five distinct lunches for seven
+ * days, and the rotation dutifully repeated two of them. Variety is
+ * the whole reason the week exists, so it gets a backstop rather than
+ * a request.
+ *
+ * Topping up from the table also keeps the failure graceful: a slot
+ * that comes back thin degrades to built-in dishes for the surplus
+ * days instead of repeating what Claude did send.
+ */
+export function topUpPool(pool: MealPool, diet: DietType): void {
+  const fallback = buildPool(diet);
+
+  for (const slot of MEAL_SLOTS) {
+    const seen = new Set<string>();
+    const unique: Dish[] = [];
+
+    for (const dish of pool[slot]) {
+      const key = signature(dish);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      unique.push(dish);
+    }
+
+    for (const dish of fallback[slot]) {
+      if (unique.length >= DISHES_PER_SLOT) break;
+      const key = signature(dish);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      unique.push(dish);
+    }
+
+    pool[slot] = unique;
+  }
+}
+
 export async function buildAiPlan(
   nutrition: NutritionPlan,
   input: UserInput,
@@ -210,6 +260,8 @@ Return ${DISHES_PER_SLOT} clearly different options for breakfast, lunch, snack 
       throw new Error(`Claude returned no dishes for ${slot}`);
     }
   }
+
+  topUpPool(pool, diet);
 
   const days = assembleWeek(pool, nutrition.calories, nutrition.macros.proteinG);
 
