@@ -72,7 +72,9 @@ const RULES: Rule[] = [
   { match: /tofu/, name: "Tofu", category: "Protein" },
   { match: /soya/, name: "Soya chunks", category: "Protein" },
   { match: /chicken/, name: "Chicken", category: "Protein" },
-  { match: /fish/, name: "Fish", category: "Protein" },
+  { match: /fish|rohu|pomfret|surmai|basa|tuna|mackerel/, name: "Fish", category: "Protein" },
+  { match: /mutton|lamb/, name: "Mutton", category: "Protein" },
+  { match: /prawn|shrimp/, name: "Prawns", category: "Protein" },
   { match: /egg/, name: "Eggs", category: "Protein" },
 
   // ---- Dairy (soy milk before milk) ----
@@ -103,6 +105,7 @@ const RULES: Rule[] = [
   { match: /ragi/, name: "Ragi", category: "Grains & flours" },
   { match: /khakhra/, name: "Khakhra", category: "Grains & flours" },
   { match: /toast|bread|pav/, name: "Bread", category: "Grains & flours" },
+  { match: /pasta|penne|macaroni|spaghetti|noodle/, name: "Pasta", category: "Grains & flours" },
 
   // ---- Nuts and seeds (peanut butter before peanuts) ----
   { match: /peanut butter/, name: "Peanut butter", category: "Nuts & seeds" },

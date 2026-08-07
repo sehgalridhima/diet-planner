@@ -17,6 +17,14 @@
   --accent-contrast: #ffffff;
   --warn: #9a5b00;
   --warn-soft: #fdf3e2;
+
+  /* Ambient wash behind everything. Kept very low in opacity: this is a
+     form and a lot of numbers, and a background that competes with them
+     is a background that has failed. */
+  --glow-1: rgba(22, 121, 74, 0.13);
+  --glow-2: rgba(52, 168, 110, 0.11);
+  --glow-3: rgba(22, 121, 74, 0.07);
+  --grid-line: rgba(16, 16, 14, 0.028);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -33,6 +41,11 @@
     --accent-contrast: #06110b;
     --warn: #f2b45c;
     --warn-soft: #2a1f0d;
+
+    --glow-1: rgba(74, 222, 154, 0.10);
+    --glow-2: rgba(45, 160, 105, 0.10);
+    --glow-3: rgba(74, 222, 154, 0.05);
+    --grid-line: rgba(240, 242, 239, 0.03);
   }
 }
 
@@ -58,6 +71,39 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * Two fixed layers behind the page: soft colour at the corners, and a
+ * faint grid that fades out before it reaches the content. Both are
+ * `position: fixed` so they stay put while a long plan scrolls over
+ * them, and both are inert to the pointer.
+ */
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+body::before {
+  background:
+    radial-gradient(58rem 40rem at 12% -12%, var(--glow-1), transparent 62%),
+    radial-gradient(46rem 34rem at 96% 2%, var(--glow-2), transparent 60%),
+    radial-gradient(52rem 36rem at 50% 118%, var(--glow-3), transparent 66%);
+}
+
+body::after {
+  background-image:
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size: 2.75rem 2.75rem;
+  /* Fade the grid away from the middle of the page so it never sits
+     behind the text it is meant to sit behind. */
+  -webkit-mask-image: radial-gradient(70rem 55rem at 50% 0%, #000 5%, transparent 78%);
+  mask-image: radial-gradient(70rem 55rem at 50% 0%, #000 5%, transparent 78%);
 }
 
 ::selection {
