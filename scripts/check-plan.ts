@@ -166,6 +166,72 @@ for (const equipment of KIT) {
 }
 check("all equipment / goal / activity combinations populated", true);
 
+/* --- 4b. No movement family twice in one session ---------------- */
+
+/*
+ * A real plan opened Monday with "Push-ups 3x12" followed by
+ * "Knee push-ups 3x12" — the same movement made easier, prescribed
+ * twice in one session. Families exist to stop that.
+ */
+console.log("\n=== No movement family repeats within a day");
+{
+  const byName = new Map(EXERCISES.map((e) => [e.name, e]));
+  const clashes: string[] = [];
+
+  for (const equipment of KIT) {
+    for (const goal of GOALS) {
+      for (const activity of ACTIVITIES) {
+        for (const lowImpactOnly of [false, true]) {
+          const { days } = buildWorkout({ goal, activity, age: 30, equipment, lowImpactOnly });
+
+          for (const day of days) {
+            if (day.rest) continue;
+            const seen = new Set<string>();
+
+            for (const line of day.exercises) {
+              const match = [...byName.keys()]
+                .filter((n) => line.startsWith(n))
+                .sort((a, b) => b.length - a.length)[0];
+              const family = match ? byName.get(match)?.family : undefined;
+              if (!family) continue;
+              if (seen.has(family)) {
+                clashes.push(`${equipment}/${goal}/${activity}/${day.day}: ${day.exercises.join(", ")}`);
+              }
+              seen.add(family);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  check(
+    "no session prescribes two variants of the same movement",
+    clashes.length === 0,
+    clashes.slice(0, 2).join(" | "),
+  );
+}
+
+/* --- 4c. Rest days do not all read the same --------------------- */
+
+console.log("\n=== Rest days vary");
+for (const goal of GOALS) {
+  const { days } = buildWorkout({
+    goal,
+    activity: "sedentary",
+    age: 30,
+    equipment: "none",
+    lowImpactOnly: false,
+  });
+  const rest = days.filter((d) => d.rest);
+  const distinct = new Set(rest.map((d) => d.exercises.join("|")));
+  check(
+    `${goal.padEnd(8)} ${rest.length} rest days, ${distinct.size} distinct wordings`,
+    rest.length < 2 || distinct.size > 1,
+    "every rest day reads identically",
+  );
+}
+
 /* --- 5. Age cap and low-impact fallback ------------------------- */
 
 console.log("\n=== Age and joint protection");
@@ -296,6 +362,12 @@ for (const [raw, qty, unit, text] of [
   ["salad", 1, "", "salad"],
   ["10 almonds", 10, "", "almonds"],
   ["1 glass soy milk", 1, "glass", "soy milk"],
+  // A stated weight beats the leading count: two parathas is not two
+  // units of paneer, and 100g is what you actually buy.
+  ["2 stuffed paneer paratha (less oil, 100 g paneer)", 100, "g", "paneer"],
+  ["1 bowl soya chunk poha (40g soya chunks)", 40, "g", "soya chunks"],
+  // No weight stated, so the parenthetical is dropped rather than parsed.
+  ["1 katori paneer tikka (tawa, less oil)", 1, "katori", "paneer tikka"],
 ] as const) {
   const p = parsePortion(raw);
   check(

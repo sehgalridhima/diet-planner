@@ -148,6 +148,22 @@ export function parsePortion(raw: string): Parsed {
   // Scaling additions arrive as "+ 1 roti" and count exactly the same.
   let text = raw.trim().replace(/^\+\s*/, "").toLowerCase();
 
+  /*
+   * Claude often writes the real amount in brackets: "2 stuffed paneer
+   * paratha (less oil, 100 g paneer)". Counting that as "paneer x2" is
+   * useless at the shop — two parathas is not two units of paneer — so
+   * when a weight is spelled out, believe it over the leading count.
+   */
+  const stated = text.match(/\((?:[^)]*?[,\s])?(\d+(?:\.\d+)?)\s*(g|kg|ml|l)\s+([a-z][a-z\s]*?)\)/);
+  if (stated) {
+    const [, n, unit, ingredient] = stated;
+    return { quantity: Number(n), unit, text: ingredient.trim() };
+  }
+
+  // Drop any remaining parenthetical so "(less oil)" cannot be mistaken
+  // for the dish itself.
+  text = text.replace(/\([^)]*\)/g, " ").replace(/\s+/g, " ").trim();
+
   // Weight or volume, where the number is glued to the unit: "150g paneer"
   const weight = text.match(/^(\d+(?:\.\d+)?)\s*(g|kg|ml|l)\b\s*(.*)$/);
   if (weight) {

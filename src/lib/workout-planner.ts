@@ -74,27 +74,47 @@ export type Exercise = {
   lowImpact?: boolean;
   /** Core work measured in seconds rather than reps */
   hold?: boolean;
+  /**
+   * Groups strict variants of one movement — the same exercise made
+   * easier or harder, not merely similar.
+   *
+   * A day should never prescribe push-ups and knee push-ups together:
+   * the second is the first made easier, so doing both is doing the
+   * same thing twice. Close-grip push-ups get their own family,
+   * because that is a genuine change of emphasis rather than of
+   * difficulty, and a bodyweight push day needs somewhere to go.
+   */
+  family?: string;
 };
 
 export const EXERCISES: Exercise[] = [
   // ---- Bodyweight: available to everyone ----
-  { name: "Bodyweight squats", pattern: "squat", needs: "none" },
-  { name: "Chair squats", pattern: "squat", needs: "none", lowImpact: true },
-  { name: "Wall sit", pattern: "squat", needs: "none", lowImpact: true, hold: true },
-  { name: "Glute bridges", pattern: "hinge", needs: "none", lowImpact: true },
-  { name: "Single-leg glute bridge", pattern: "hinge", needs: "none", lowImpact: true },
+  { name: "Bodyweight squats", pattern: "squat", needs: "none", family: "bw-squat" },
+  { name: "Chair squats", pattern: "squat", needs: "none", lowImpact: true, family: "bw-squat" },
+  { name: "Wall sit", pattern: "squat", needs: "none", lowImpact: true, hold: true, family: "bw-squat" },
+  { name: "Glute bridges", pattern: "hinge", needs: "none", lowImpact: true, family: "glute-bridge" },
+  { name: "Single-leg glute bridge", pattern: "hinge", needs: "none", lowImpact: true, family: "glute-bridge" },
   { name: "Bodyweight good mornings", pattern: "hinge", needs: "none", lowImpact: true },
-  { name: "Reverse lunges", pattern: "lunge", needs: "none" },
-  { name: "Split squats", pattern: "lunge", needs: "none" },
+  { name: "Reverse lunges", pattern: "lunge", needs: "none", family: "bw-lunge" },
+  { name: "Split squats", pattern: "lunge", needs: "none", family: "bw-lunge" },
   { name: "Step-ups onto a sturdy chair", pattern: "lunge", needs: "none", lowImpact: true },
-  { name: "Push-ups", pattern: "push", needs: "none" },
-  { name: "Incline push-ups against a table", pattern: "push", needs: "none", lowImpact: true },
-  { name: "Knee push-ups", pattern: "push", needs: "none", lowImpact: true },
+  { name: "Push-ups", pattern: "push", needs: "none", family: "pushup" },
+  { name: "Incline push-ups against a table", pattern: "push", needs: "none", lowImpact: true, family: "pushup" },
+  { name: "Knee push-ups", pattern: "push", needs: "none", lowImpact: true, family: "pushup" },
   { name: "Pike push-ups", pattern: "push", needs: "none" },
   { name: "Close-grip push-ups", pattern: "push", needs: "none" },
+  // Low-impact pressing that is not a push-up variant. Without these, a
+  // gentle bodyweight push day has only push-up regressions to choose
+  // from and has to prescribe two of them.
+  { name: "Chair dips with feet on the floor", pattern: "push", needs: "none", lowImpact: true, family: "dip" },
+  { name: "Backpack floor press", pattern: "push", needs: "none", lowImpact: true, family: "floor-press" },
   { name: "Towel rows in a doorway", pattern: "pull", needs: "none" },
   { name: "Superman holds", pattern: "pull", needs: "none", lowImpact: true, hold: true },
   { name: "Prone Y-T-W raises", pattern: "pull", needs: "none", lowImpact: true },
+  { name: "Inverted rows under a sturdy table", pattern: "pull", needs: "none" },
+  { name: "Backpack bent-over rows", pattern: "pull", needs: "none" },
+  { name: "Reverse snow angels", pattern: "pull", needs: "none", lowImpact: true },
+  { name: "Doorway isometric rows", pattern: "pull", needs: "none", lowImpact: true, hold: true },
   { name: "Plank", pattern: "core", needs: "none", lowImpact: true, hold: true },
   { name: "Side plank", pattern: "core", needs: "none", lowImpact: true, hold: true },
   { name: "Dead bug", pattern: "core", needs: "none", lowImpact: true },
@@ -114,20 +134,22 @@ export const EXERCISES: Exercise[] = [
   { name: "Band chest press", pattern: "push", needs: "bands", lowImpact: true },
   { name: "Band shoulder press", pattern: "push", needs: "bands", lowImpact: true },
   { name: "Band rows", pattern: "pull", needs: "bands", lowImpact: true },
-  { name: "Band lat pulldown", pattern: "pull", needs: "bands", lowImpact: true },
+  { name: "Band lat pulldown", pattern: "pull", needs: "bands", lowImpact: true, family: "vertical-pull" },
   { name: "Band face pulls", pattern: "pull", needs: "bands", lowImpact: true },
 
   // ---- Dumbbells at home ----
-  { name: "Goblet squats", pattern: "squat", needs: "dumbbells" },
-  { name: "Dumbbell front squat", pattern: "squat", needs: "dumbbells" },
-  { name: "Dumbbell Romanian deadlift", pattern: "hinge", needs: "dumbbells" },
-  { name: "Dumbbell sumo deadlift", pattern: "hinge", needs: "dumbbells" },
+  { name: "Goblet squats", pattern: "squat", needs: "dumbbells", family: "db-squat" },
+  { name: "Dumbbell front squat", pattern: "squat", needs: "dumbbells", family: "db-squat" },
+  { name: "Dumbbell Romanian deadlift", pattern: "hinge", needs: "dumbbells", family: "db-hinge" },
+  { name: "Dumbbell sumo deadlift", pattern: "hinge", needs: "dumbbells", family: "db-hinge" },
   { name: "Dumbbell lunges", pattern: "lunge", needs: "dumbbells" },
   { name: "Dumbbell step-ups", pattern: "lunge", needs: "dumbbells", lowImpact: true },
-  { name: "Dumbbell bench press", pattern: "push", needs: "dumbbells" },
+  { name: "Dumbbell bench press", pattern: "push", needs: "dumbbells", family: "db-horizontal-press" },
   { name: "Dumbbell shoulder press", pattern: "push", needs: "dumbbells" },
-  { name: "Dumbbell floor press", pattern: "push", needs: "dumbbells", lowImpact: true },
+  { name: "Dumbbell floor press", pattern: "push", needs: "dumbbells", lowImpact: true, family: "db-horizontal-press" },
   { name: "Dumbbell rows", pattern: "pull", needs: "dumbbells" },
+  { name: "Dumbbell lateral raises", pattern: "push", needs: "dumbbells", lowImpact: true, family: "lateral" },
+  { name: "Dumbbell overhead tricep extension", pattern: "push", needs: "dumbbells", lowImpact: true, family: "tricep" },
   { name: "Dumbbell reverse fly", pattern: "pull", needs: "dumbbells", lowImpact: true },
   { name: "Dumbbell curls", pattern: "pull", needs: "dumbbells", lowImpact: true },
   { name: "Suitcase carry", pattern: "core", needs: "dumbbells", lowImpact: true },
@@ -135,18 +157,23 @@ export const EXERCISES: Exercise[] = [
   // ---- Full gym ----
   { name: "Barbell back squat", pattern: "squat", needs: "gym" },
   { name: "Leg press", pattern: "squat", needs: "gym", lowImpact: true },
-  { name: "Barbell deadlift", pattern: "hinge", needs: "gym" },
-  { name: "Romanian deadlift", pattern: "hinge", needs: "gym" },
+  { name: "Barbell deadlift", pattern: "hinge", needs: "gym", family: "bb-hinge" },
+  { name: "Romanian deadlift", pattern: "hinge", needs: "gym", family: "bb-hinge" },
   { name: "Back extensions", pattern: "hinge", needs: "gym", lowImpact: true },
   { name: "Walking lunges", pattern: "lunge", needs: "gym" },
   { name: "Bulgarian split squats", pattern: "lunge", needs: "gym" },
-  { name: "Barbell bench press", pattern: "push", needs: "gym" },
+  { name: "Barbell bench press", pattern: "push", needs: "gym", family: "bb-horizontal-press" },
   { name: "Incline barbell press", pattern: "push", needs: "gym" },
-  { name: "Machine chest press", pattern: "push", needs: "gym", lowImpact: true },
-  { name: "Pull-ups", pattern: "pull", needs: "gym" },
-  { name: "Lat pulldown", pattern: "pull", needs: "gym", lowImpact: true },
-  { name: "Seated cable row", pattern: "pull", needs: "gym", lowImpact: true },
-  { name: "Barbell rows", pattern: "pull", needs: "gym" },
+  { name: "Machine chest press", pattern: "push", needs: "gym", lowImpact: true, family: "bb-horizontal-press" },
+  { name: "Overhead barbell press", pattern: "push", needs: "gym", family: "vertical-press" },
+  { name: "Machine shoulder press", pattern: "push", needs: "gym", lowImpact: true, family: "vertical-press" },
+  { name: "Cable tricep pushdown", pattern: "push", needs: "gym", lowImpact: true, family: "tricep" },
+  { name: "Pull-ups", pattern: "pull", needs: "gym", family: "vertical-pull" },
+  { name: "Lat pulldown", pattern: "pull", needs: "gym", lowImpact: true, family: "vertical-pull" },
+  { name: "Seated cable row", pattern: "pull", needs: "gym", lowImpact: true, family: "horizontal-row" },
+  { name: "Barbell rows", pattern: "pull", needs: "gym", family: "horizontal-row" },
+  { name: "Cable face pulls", pattern: "pull", needs: "gym", lowImpact: true, family: "rear-delt" },
+  { name: "Barbell bicep curls", pattern: "pull", needs: "gym", family: "curl" },
   { name: "Cable crunches", pattern: "core", needs: "gym" },
   { name: "Hanging leg raises", pattern: "core", needs: "gym" },
   { name: "Treadmill incline walk", pattern: "cardio", needs: "gym", lowImpact: true },
@@ -286,40 +313,88 @@ export function buildWorkout(input: WorkoutInput): { days: WorkoutDay[]; notes: 
   const split = SPLITS[goal][frequency];
   const trainOn = TRAINING_DAYS[frequency];
 
+  // Advances every time a pattern is used, so successive sessions walk
+  // through that pattern's list instead of landing on the same entry.
+  const patternCursor = new Map<Pattern, number>();
+
   const days: WorkoutDay[] = DAYS.map((day, dayIndex) => {
     const slot = trainOn.indexOf(dayIndex);
+    // Which rest day of the week this is, so the three do not
+    // collide on the same wording the way day-of-week did.
+    const restOrdinal = dayIndex - trainOn.filter((d) => d < dayIndex).length;
 
     if (slot === -1) {
+      /*
+       * Three rest days a week reading word-for-word identically makes
+       * the plan look like it stopped thinking. Same intent, different
+       * phrasing, keyed on the day so it stays deterministic.
+       */
+      const restIdeas =
+        goal === "lose"
+          ? [
+              ["A 20 minute easy walk if you feel like it", "Light stretching"],
+              ["Stay on your feet where you can — a walk after dinner counts", "Hip and shoulder mobility, 10 min"],
+              ["Nothing planned. Sleep is the training you are doing today", "Gentle stretching if you feel stiff"],
+            ]
+          : [
+              ["Full rest — muscle is built on rest days"],
+              ["Rest. Eat properly today; this is when the work turns into muscle"],
+              ["Full rest, or 15 minutes of light stretching if you are restless"],
+            ];
+
       return {
         day,
         focus: "Rest",
         rest: true,
-        exercises:
-          goal === "lose"
-            ? ["A 20 minute easy walk if you feel like it", "Light stretching"]
-            : ["Full rest — muscle is built on rest days"],
+        exercises: restIdeas[restOrdinal % restIdeas.length],
       };
     }
 
     const focus = split[slot];
     const used = new Set<string>();
+    const usedFamilies = new Set<string>();
     const exercises: string[] = [];
 
-    FOCUS_PATTERNS[focus].forEach((pattern, position) => {
+    FOCUS_PATTERNS[focus].forEach((pattern) => {
       const candidates = pool(pattern, equipment, lowImpactOnly);
       if (candidates.length === 0) return;
 
-      // Offset by the day so Friday's push day is not a copy of Monday's,
-      // then walk forward past anything already used today.
-      let index = (slot * 3 + position) % candidates.length;
-      for (let tries = 0; tries < candidates.length; tries++) {
-        const candidate = candidates[index];
-        if (!used.has(candidate.name)) {
-          used.add(candidate.name);
-          exercises.push(format(candidate, goal));
-          return;
+      /*
+       * Where in this pattern's list to start looking.
+       *
+       * A cursor that advances every time the pattern is used anywhere
+       * in the week, rather than an offset computed from the day. The
+       * old formula was (slot * 3 + position), which lands on the same
+       * exercise whenever the pool size divides the stride — with three
+       * gentle dumbbell presses to choose from, both training days got
+       * lateral raises.
+       */
+      const cursor = patternCursor.get(pattern) ?? 0;
+
+      /*
+       * Two passes. The first refuses any movement family already used
+       * today, so a day cannot prescribe push-ups and knee push-ups —
+       * the same movement made easier. The second drops that rule and
+       * takes anything unused, because a thin bodyweight pool would
+       * otherwise leave the day a movement short, and a slightly
+       * redundant exercise beats a missing one.
+       */
+      for (const strict of [true, false]) {
+        let index = cursor % candidates.length;
+
+        for (let tries = 0; tries < candidates.length; tries++) {
+          const candidate = candidates[index];
+          const familyClash = strict && candidate.family && usedFamilies.has(candidate.family);
+
+          if (!used.has(candidate.name) && !familyClash) {
+            used.add(candidate.name);
+            if (candidate.family) usedFamilies.add(candidate.family);
+            patternCursor.set(pattern, index + 1);
+            exercises.push(format(candidate, goal));
+            return;
+          }
+          index = (index + 1) % candidates.length;
         }
-        index = (index + 1) % candidates.length;
       }
     });
 
