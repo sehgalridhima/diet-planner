@@ -25,6 +25,8 @@ export type Profile = {
   goal: Goal;
   diet: DietType;
   equipment: string;
+  /** Something they want to eat, fed to the planner */
+  craving: string;
   /** IANA zone from the browser, so "today" is the user's today */
   timezone: string;
 };
@@ -40,6 +42,7 @@ type ProfileRow = {
   goal: Goal;
   diet: DietType;
   equipment: string;
+  craving: string | null;
   timezone: string;
 };
 
@@ -55,6 +58,7 @@ function fromRow(row: ProfileRow): Profile {
     goal: row.goal,
     diet: row.diet,
     equipment: row.equipment,
+    craving: row.craving ?? "",
     timezone: row.timezone,
   };
 }
@@ -128,6 +132,7 @@ export async function saveProfile(input: ProfileInput): Promise<{ error?: string
     goal: input.goal,
     diet: input.diet,
     equipment: input.equipment,
+    craving: input.craving || null,
     timezone: input.timezone,
   });
 

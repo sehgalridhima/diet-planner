@@ -74,9 +74,21 @@ function scoreDish(dish: Dish, targetCalories: number, targetProtein: number) {
  * taking the whole list would drag genuinely poor fits into the week just
  * for the sake of variety.
  */
-function rotationFor(dishes: Dish[], targetCalories: number, targetProtein: number) {
+function rotationFor(
+  dishes: Dish[],
+  targetCalories: number,
+  targetProtein: number,
+  wanted: string[] = [],
+) {
   return dishes
-    .map((dish) => scoreDish(dish, targetCalories, targetProtein))
+    .map((dish) => {
+      const scored = scoreDish(dish, targetCalories, targetProtein);
+      // A craving is worth about as much as a moderate calorie miss:
+      // enough to promote a dish, never enough to promote a bad fit.
+      const text = dish.items.join(" ").toLowerCase();
+      const wants = wanted.some((w) => text.includes(w));
+      return { ...scored, score: scored.score - (wants ? 0.35 : 0) };
+    })
     .sort((a, b) => a.score - b.score)
     .slice(0, DAYS.length);
 }
@@ -93,14 +105,26 @@ export function assembleWeek(
   pool: MealPool,
   dailyCalories: number,
   dailyProteinG: number,
+  /**
+   * Something the person said they want to eat. Dishes mentioning it are
+   * pulled toward the front of the rotation rather than forced in — a
+   * craving should tilt the week, not override the targets.
+   */
+  craving = "",
 ): DayPlan[] {
   const rotations = {} as Record<MealSlot, ReturnType<typeof rotationFor>>;
+
+  const wanted = craving
+    .toLowerCase()
+    .split(/[\s,]+/)
+    .filter((w) => w.length > 3);
 
   for (const slot of MEAL_SLOTS) {
     rotations[slot] = rotationFor(
       pool[slot] ?? [],
       Math.round(dailyCalories * MEAL_SPLIT[slot]),
       Math.round(dailyProteinG * MEAL_SPLIT[slot]),
+      wanted,
     );
   }
 

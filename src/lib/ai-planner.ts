@@ -53,7 +53,7 @@ RULES
 
 1. Indian home food, always. Dal, roti, sabzi, rice, curd, paneer, idli, poha, upma, chilla, khichdi, rajma, chana, sambar. Not quinoa bowls, not salmon, not protein powders, not anything a normal Indian kitchen would not have on a weekday.
 
-2. Portions the way people speak, never grams for staples. "2 roti", "1 katori dal", "1 glass milk", "1 bowl poha". Grams are fine only for meat, paneer and tofu, where people genuinely buy by weight.
+2. Portions the way people speak, WITH the weight in brackets after them. "2 roti (70 g atta)", "1 katori dal (250 g)", "1 glass milk (250 ml)", "1 bowl poha (60 g raw)". The spoken portion is what someone serves; the weight is what someone weighing their food needs. Give both, every time, and say "raw" or "cooked" wherever it changes the number — 60 g raw poha and 60 g cooked poha are not the same meal.
 
 3. Hit the protein target. This is the number that matters most and the one Indian diets most often miss. On vegetarian and vegan plans you will have to work for it: dal, chana, rajma, paneer, tofu, soya chunks, curd, peanuts, sprouts. Do not quietly fall short.
 
@@ -67,7 +67,11 @@ RULES
 
 8. Notes must be practical and specific to this person's plan. No generic wellness advice, no motivational filler, no medical claims. Four notes at most. Say nothing about exercise: the training plan is built elsewhere and you have not seen it.
 
-9. Never suggest supplements, medication, fasting protocols, or anything that would need a doctor's supervision.
+9. Protein powder is allowed, and it must always come with a food alternative. If a day is short on protein you may offer "1 scoop whey (30 g)" — but write the food option beside it every time, because most people would rather eat than buy a tub: "1 scoop whey (30 g) or 1 katori sattu (40 g) or 100 g paneer". On a vegan plan the powder is soy or pea, never whey. Telling a vegetarian they are 30 g short and then refusing to say how to close it is useless advice.
+
+10. Nothing else that comes in a tub or a packet. No fat burners, no appetite suppressants, no meal-replacement shakes, no creatine loading protocols, no fasting protocols, no medication, and nothing that would need a doctor's supervision.
+
+11. If the person names a food they are craving, build it into the plan rather than leaving it out. Fit it to the calorie target — a smaller portion, or a lighter meal elsewhere in the day to make room — and put it in the meal it belongs in. A plan someone enjoys gets followed; a technically perfect one they resent does not. Never lecture them about the craving, and never substitute something "healthier" and pretend it is the same thing.
 
 Write in plain, warm English. Short sentences. Assume the reader is busy and slightly sceptical of diet plans, because they have been given useless ones before.`;
 
@@ -190,6 +194,8 @@ export async function buildAiPlan(
   input: UserInput,
   diet: DietType,
   equipment: Equipment,
+  /** Something they actually want to eat this week, in their words */
+  craving = "",
 ): Promise<AiResult> {
   const client = new Anthropic();
 
@@ -233,9 +239,13 @@ ${perSlot}
 
 Person:
 - Goal: ${GOAL_LABEL[input.goal]}
-- Diet: ${DIET_LABEL[diet]}
+- Diet: ${DIET_LABEL[diet]}${craving ? `\n- Craving right now: ${craving}` : ""}
 
-Return ${DISHES_PER_SLOT} clearly different options for breakfast, lunch, snack and dinner.`,
+Return ${DISHES_PER_SLOT} clearly different options for breakfast, lunch, snack and dinner.${
+          craving
+            ? ` Work what they are craving into at least two of these options, at portions that fit the targets.`
+            : ""
+        }`,
       },
     ],
   });

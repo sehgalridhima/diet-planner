@@ -38,7 +38,12 @@ const cache = new Map<string, CacheEntry>();
  * Inputs are rounded before they become the key, so people who are
  * close to each other share a plan instead of each paying for one.
  */
-function cacheKey(input: UserInput, diet: DietType, equipment: Equipment): string {
+function cacheKey(
+  input: UserInput,
+  diet: DietType,
+  equipment: Equipment,
+  craving: string,
+): string {
   return [
     Math.round(input.age / 5) * 5,
     input.sex,
@@ -51,6 +56,8 @@ function cacheKey(input: UserInput, diet: DietType, equipment: Equipment): strin
     // A measured BMR changes every calorie downstream, so two people
     // who differ only here must not share a cached plan.
     input.measuredBmr ? Math.round(input.measuredBmr / 25) * 25 : "-",
+    // Two people wanting different things must not share a plan.
+    craving.toLowerCase().trim(),
   ].join("|");
 }
 
@@ -82,12 +89,12 @@ export async function buildPlan(
   input: UserInput,
   diet: DietType,
   equipment: Equipment,
-  options: { allowAi?: boolean } = {},
+  options: { allowAi?: boolean; craving?: string } = {},
 ): Promise<PlanResult> {
-  const { allowAi = true } = options;
+  const { allowAi = true, craving = "" } = options;
 
   const nutrition = buildNutritionPlan(input);
-  const key = cacheKey(input, diet, equipment);
+  const key = cacheKey(input, diet, equipment, craving);
 
   const cached = readCache(key);
   if (cached) {
@@ -96,7 +103,7 @@ export async function buildPlan(
 
   if (allowAi && hasApiKey()) {
     try {
-      const { plan, usage } = await buildAiPlan(nutrition, input, diet, equipment);
+      const { plan, usage } = await buildAiPlan(nutrition, input, diet, equipment, craving);
       writeCache(key, { plan, nutrition, storedAt: Date.now() });
       console.log(
         `[plan] AI ok — in ${usage.inputTokens}, cached-in ${usage.cacheReadTokens}, out ${usage.outputTokens}, approx Rs.${estimateCostInr(usage).toFixed(2)}`,
@@ -107,7 +114,7 @@ export async function buildPlan(
     }
   }
 
-  const plan = buildBuiltinPlan(nutrition, input, diet, equipment);
+  const plan = buildBuiltinPlan(nutrition, input, diet, equipment, craving);
   writeCache(key, { plan, nutrition, storedAt: Date.now() });
   return { plan, nutrition, cached: false };
 }

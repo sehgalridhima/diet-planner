@@ -54,6 +54,7 @@ export async function saveProfileAction(_prev: unknown, formData: FormData) {
   const goal = pick(formData.get("goal"), GOALS);
   const diet = pick(formData.get("diet"), DIETS);
   const equipment = String(formData.get("equipment") ?? "Bodyweight only").slice(0, 120);
+  const craving = String(formData.get("craving") ?? "").trim().slice(0, 120);
 
   // Sent by a hidden field the browser fills in, because the server
   // runs in UTC and would roll the plan over at 5:30am in India.
@@ -74,6 +75,7 @@ export async function saveProfileAction(_prev: unknown, formData: FormData) {
     goal,
     diet,
     equipment,
+    craving,
     timezone,
   };
 

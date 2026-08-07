@@ -133,6 +133,26 @@ const RULES: Rule[] = [
 
 const UNITS = ["katori", "bowl", "glass", "cup", "tbsp", "tsp", "small", "large"];
 
+/**
+ * Words that describe how a weight was taken rather than what was
+ * weighed. "150 g cooked" is 150 g of the dish, not 150 g of a thing
+ * called cooked — which is exactly what the shopping list said before
+ * this existed.
+ */
+const QUALIFIERS = /^(cooked|raw|dry|uncooked|boiled|soaked|each|total|approx)$/;
+
+/** Strips a leading count and serving unit: "1 katori dal" -> "dal". */
+function stripCount(text: string): string {
+  let rest = text.trim().replace(/^\d+(?:\.\d+)?\s+/, "");
+  for (const unit of UNITS) {
+    if (rest.startsWith(`${unit} `)) {
+      rest = rest.slice(unit.length + 1);
+      break;
+    }
+  }
+  return rest.trim();
+}
+
 type Parsed = { quantity: number; unit: string; text: string };
 
 /**
@@ -149,15 +169,27 @@ export function parsePortion(raw: string): Parsed {
   let text = raw.trim().replace(/^\+\s*/, "").toLowerCase();
 
   /*
-   * Claude often writes the real amount in brackets: "2 stuffed paneer
-   * paratha (less oil, 100 g paneer)". Counting that as "paneer x2" is
-   * useless at the shop — two parathas is not two units of paneer — so
-   * when a weight is spelled out, believe it over the leading count.
+   * Portions carry their weight in brackets: "1 katori dal (250 g)",
+   * "2 roti (70 g atta)", "1 katori rice (150 g cooked)". The weight is
+   * what you shop with, so it beats the spoken count whenever it exists.
+   *
+   * What follows the number decides what is being weighed:
+   *   "(70 g atta)"    -> 70 g of atta, not of roti
+   *   "(150 g cooked)" -> 150 g of the dish itself; "cooked" describes
+   *                       the weight, it is not an ingredient
+   *   "(250 g)"        -> 250 g of the dish itself
    */
-  const stated = text.match(/\((?:[^)]*?[,\s])?(\d+(?:\.\d+)?)\s*(g|kg|ml|l)\s+([a-z][a-z\s]*?)\)/);
-  if (stated) {
-    const [, n, unit, ingredient] = stated;
-    return { quantity: Number(n), unit, text: ingredient.trim() };
+  const bracketed = text.match(/^(.*?)\s*\(([^)]*)\)\s*$/);
+  if (bracketed) {
+    const [, outer, inside] = bracketed;
+    const weight = inside.match(/(\d+(?:\.\d+)?)\s*(g|kg|ml|l)\b\s*([a-z\s]*)/);
+
+    if (weight) {
+      const [, n, unit, trailing] = weight;
+      const descriptor = trailing.trim();
+      const named = descriptor && !QUALIFIERS.test(descriptor) ? descriptor : stripCount(outer);
+      return { quantity: Number(n), unit, text: named };
+    }
   }
 
   // Drop any remaining parenthetical so "(less oil)" cannot be mistaken

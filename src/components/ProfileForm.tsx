@@ -89,6 +89,17 @@ export default function ProfileForm({ profile }: { profile: Profile | null }) {
           />
         </Field>
 
+        <Field label="Craving anything?" hint="optional">
+          <input
+            type="text"
+            name="craving"
+            maxLength={120}
+            defaultValue={profile?.craving ?? ""}
+            placeholder="pasta, chole bhature, chocolate…"
+            className={field}
+          />
+        </Field>
+
         <Field label="Measured BMR" hint="optional">
           <input
             type="number"

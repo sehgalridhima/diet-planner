@@ -77,6 +77,9 @@ export async function POST(request: Request) {
       ? body.equipment.trim().slice(0, 120)
       : "bodyweight only";
 
+  const craving =
+    typeof body.craving === "string" ? body.craving.trim().slice(0, 120) : "";
+
   if (errors.length > 0) {
     return NextResponse.json({ error: errors.join(" ") }, { status: 400 });
   }
@@ -85,7 +88,7 @@ export async function POST(request: Request) {
   const kit = parseEquipment(equipment);
   const limited = rateLimited(clientKey(request));
 
-  const result = await buildPlan(validInput, diet, kit, { allowAi: !limited });
+  const result = await buildPlan(validInput, diet, kit, { allowAi: !limited, craving });
 
   return NextResponse.json({
     ...result,

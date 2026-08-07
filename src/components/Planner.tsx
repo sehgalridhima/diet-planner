@@ -38,6 +38,7 @@ export default function Planner() {
     goal: "lose",
     diet: "veg" as DietType,
     equipment: "Bodyweight only",
+    craving: "",
   });
 
   const [result, setResult] = useState<ApiResponse | null>(null);
@@ -74,6 +75,7 @@ export default function Planner() {
           goal: form.goal,
           diet: form.diet,
           equipment: form.equipment,
+          craving: form.craving,
         }),
       });
 
@@ -192,6 +194,21 @@ export default function Planner() {
               className={fieldClass}
               placeholder="65"
             />
+          </Field>
+
+          <Field label="Craving anything?" hint="optional">
+            <input
+              type="text"
+              maxLength={120}
+              value={form.craving}
+              onChange={(e) => set("craving", e.target.value)}
+              className={fieldClass}
+              placeholder="pasta, chole bhature, chocolate…"
+            />
+            <span className="text-xs text-muted">
+              Tell us and it gets built into the week at a portion that fits. A plan you enjoy
+              is the one you actually follow.
+            </span>
           </Field>
 
           <Field label="Measured BMR" hint="optional">

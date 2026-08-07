@@ -366,6 +366,10 @@ for (const [raw, qty, unit, text] of [
   // units of paneer, and 100g is what you actually buy.
   ["2 stuffed paneer paratha (less oil, 100 g paneer)", 100, "g", "paneer"],
   ["1 bowl soya chunk poha (40g soya chunks)", 40, "g", "soya chunks"],
+  // The weight is of the dish itself, not of something called "cooked".
+  ["1 katori rice (150 g cooked)", 150, "g", "rice"],
+  ["1 katori dal (250 g)", 250, "g", "dal"],
+  ["2 roti (70 g atta)", 70, "g", "atta"],
   // No weight stated, so the parenthetical is dropped rather than parsed.
   ["1 katori paneer tikka (tawa, less oil)", 1, "katori", "paneer tikka"],
 ] as const) {
@@ -424,12 +428,15 @@ for (const [raw, qty, unit, text] of [
 
   // Aggregation is the point: roti appears on most days, so it must
   // be one line with a big number, not one line per day.
-  const roti = list.find((i) => i.name === "Roti (atta)" && i.unit === "");
+  const roti = list.find((i) => i.name === "Roti (atta)" && i.unit === "g");
   check(
-    roti ? `roti aggregated to a single line (×${roti.quantity})` : "roti aggregated",
-    Boolean(roti && roti.quantity > 7),
-    roti ? `only ${roti.quantity}` : "no roti line found",
+    roti ? `atta aggregated into grams (${roti.quantity}g)` : "atta aggregated",
+    Boolean(roti && roti.quantity > 300),
+    roti ? `only ${roti.quantity}g` : "no atta line found",
   );
+
+  const junk = list.filter((i) => /^(cooked|raw|dry)$/i.test(i.name));
+  check("no shopping line named after a weight qualifier", junk.length === 0, junk.map((i) => i.name).join(", "));
 }
 
 /* --- 9. A thin AI pool is topped up ----------------------------- */

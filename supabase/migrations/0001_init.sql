@@ -26,6 +26,9 @@ create table if not exists public.profiles (
   goal        text    not null check (goal in ('lose', 'maintain', 'gain')),
   diet        text    not null check (diet in ('veg', 'egg', 'nonveg', 'vegan')),
   equipment   text    not null default 'Bodyweight only',
+  -- Something they actually want to eat. Fed to the planner so the week
+  -- includes it rather than making them fight the craving.
+  craving     text    check (char_length(craving) <= 120),
   -- The browser's IANA zone. "Today" is the user's today, not the
   -- server's: Vercel runs UTC, so a server-side date would roll the
   -- plan over at 5:30am in India.

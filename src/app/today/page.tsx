@@ -48,6 +48,7 @@ export default async function TodayPage() {
     toUserInput(profile),
     profile.diet,
     parseEquipment(profile.equipment),
+    { craving: profile.craving },
   );
 
   const weights = await getWeightLog(30);
