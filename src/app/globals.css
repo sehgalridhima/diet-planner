@@ -42,10 +42,14 @@
     --warn: #f2b45c;
     --warn-soft: #2a1f0d;
 
-    --glow-1: rgba(74, 222, 154, 0.10);
-    --glow-2: rgba(45, 160, 105, 0.10);
-    --glow-3: rgba(74, 222, 154, 0.05);
-    --grid-line: rgba(240, 242, 239, 0.03);
+    /* Dark needs roughly half again what light does to read at all: a
+       10% overlay on #0a0b0a is invisible, where the same value over
+       white is plainly there. Tuning both themes to identical numbers
+       was the mistake. */
+    --glow-1: rgba(74, 222, 154, 0.17);
+    --glow-2: rgba(45, 190, 120, 0.15);
+    --glow-3: rgba(74, 222, 154, 0.09);
+    --grid-line: rgba(240, 242, 239, 0.045);
   }
 }
 
@@ -89,10 +93,14 @@ body::after {
 }
 
 body::before {
+  /* The layer is `fixed`, so these percentages are of the VIEWPORT, not
+     of the document. The third glow used to sit at 118% — permanently
+     below the bottom edge on every screen, which is a slow way of
+     writing nothing at all. */
   background:
-    radial-gradient(58rem 40rem at 12% -12%, var(--glow-1), transparent 62%),
-    radial-gradient(46rem 34rem at 96% 2%, var(--glow-2), transparent 60%),
-    radial-gradient(52rem 36rem at 50% 118%, var(--glow-3), transparent 66%);
+    radial-gradient(58rem 40rem at 12% -10%, var(--glow-1), transparent 62%),
+    radial-gradient(46rem 34rem at 97% 4%, var(--glow-2), transparent 60%),
+    radial-gradient(52rem 34rem at 50% 96%, var(--glow-3), transparent 68%);
 }
 
 body::after {
