@@ -131,7 +131,7 @@ for (const equipment of KIT) {
 
         for (const day of days) {
           if (day.rest) continue;
-          for (const line of day.exercises) {
+          for (const line of day.blocks.filter((b) => b.name !== "Then").flatMap((b) => b.items)) {
             const match = [...reachable].some((name) => line.startsWith(name));
             if (!match) bad.push(`${goal}/${activity}: "${line}"`);
           }
@@ -152,7 +152,7 @@ for (const equipment of KIT) {
       const expected = trainingFrequency(activity, goal, 30);
       const { days } = buildWorkout({ goal, activity, age: 30, equipment, lowImpactOnly: false });
       const training = days.filter((d) => !d.rest);
-      const empty = training.filter((d) => d.exercises.length === 0);
+      const empty = training.filter((d) => d.blocks.flatMap((b) => b.items).length === 0);
 
       if (training.length !== expected || empty.length > 0) {
         check(
@@ -188,14 +188,14 @@ console.log("\n=== No movement family repeats within a day");
             if (day.rest) continue;
             const seen = new Set<string>();
 
-            for (const line of day.exercises) {
+            for (const line of day.blocks.filter((b) => b.name !== "Then").flatMap((b) => b.items)) {
               const match = [...byName.keys()]
                 .filter((n) => line.startsWith(n))
                 .sort((a, b) => b.length - a.length)[0];
               const family = match ? byName.get(match)?.family : undefined;
               if (!family) continue;
               if (seen.has(family)) {
-                clashes.push(`${equipment}/${goal}/${activity}/${day.day}: ${day.exercises.join(", ")}`);
+                clashes.push(`${equipment}/${goal}/${activity}/${day.day}: ${day.blocks.flatMap((b) => b.items).join(", ")}`);
               }
               seen.add(family);
             }
@@ -224,7 +224,7 @@ for (const goal of GOALS) {
     lowImpactOnly: false,
   });
   const rest = days.filter((d) => d.rest);
-  const distinct = new Set(rest.map((d) => d.exercises.join("|")));
+  const distinct = new Set(rest.map((d) => d.blocks.flatMap((b) => b.items).join("|")));
   check(
     `${goal.padEnd(8)} ${rest.length} rest days, ${distinct.size} distinct wordings`,
     rest.length < 2 || distinct.size > 1,
@@ -252,7 +252,7 @@ check(
     lowImpactOnly: true,
   });
   const highImpact = ["Jog", "Skipping", "Stair climbing"];
-  const found = days.flatMap((d) => d.exercises).filter((e) => highImpact.some((h) => e.startsWith(h)));
+  const found = days.flatMap((d) => d.blocks.flatMap((b) => b.items)).filter((e) => highImpact.some((h) => e.startsWith(h)));
   check("low-impact plan contains no jogging or skipping", found.length === 0, found.join(", "));
 }
 

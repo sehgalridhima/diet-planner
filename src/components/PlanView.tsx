@@ -181,13 +181,24 @@ export default function PlanView({
                   </h3>
                   {i === todayIndex && <span className="ml-auto text-xs text-accent">today</span>}
                 </div>
-                <ul className="mt-2 flex flex-col gap-1">
-                  {w.exercises.map((exercise, j) => (
-                    <li key={j} className="text-sm text-muted">
-                      {exercise}
-                    </li>
-                  ))}
-                </ul>
+                {w.blocks.map((block) => (
+                  <div key={block.name} className="mt-3">
+                    {/* Rest days have one unnamed-feeling block; naming it
+                        "Recovery" and then labelling it too reads as shouting */}
+                    {!w.rest && (
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted/70">
+                        {block.name}
+                      </p>
+                    )}
+                    <ul className="mt-1 flex flex-col gap-1">
+                      {block.items.map((item, j) => (
+                        <li key={j} className="text-sm text-muted">
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
               </div>
             ))}
           </div>

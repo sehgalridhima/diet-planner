@@ -67,10 +67,22 @@ export type DayPlan = {
   proteinG: number;
 };
 
+/**
+ * A named section within a session — "Strength", "Core", "Finish".
+ *
+ * Real programmes are written in blocks, and a flat list of seven
+ * lines hides which of them is the training and which is the ten
+ * minutes of walking at the end.
+ */
+export type WorkoutBlock = {
+  name: string;
+  items: string[];
+};
+
 export type WorkoutDay = {
   day: string;
   focus: string;
-  exercises: string[];
+  blocks: WorkoutBlock[];
   /** True on rest days, so the UI can style them down rather than shout them */
   rest?: boolean;
 };
