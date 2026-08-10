@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { validateInput, type Goal, type UserInput } from "@/lib/nutrition";
-import { buildPlan } from "@/lib/build-plan";
+import { buildPlan, type Want } from "@/lib/build-plan";
 import { parseEquipment } from "@/lib/workout-planner";
 import { CUISINE_OPTIONS, type Cuisine, type DietType } from "@/lib/plan-types";
 
@@ -85,6 +85,11 @@ export async function POST(request: Request) {
     ? (rawCuisine as Cuisine)
     : "any";
 
+  const rawWant = String(body.want ?? "all");
+  const want: Want = ["all", "food", "training", "numbers"].includes(rawWant)
+    ? (rawWant as Want)
+    : "all";
+
   if (errors.length > 0) {
     return NextResponse.json({ error: errors.join(" ") }, { status: 400 });
   }
@@ -93,7 +98,7 @@ export async function POST(request: Request) {
   const kit = parseEquipment(equipment);
   const limited = rateLimited(clientKey(request));
 
-  const result = await buildPlan(validInput, diet, kit, { allowAi: !limited, craving, cuisine });
+  const result = await buildPlan(validInput, diet, kit, { allowAi: !limited, craving, cuisine, want });
 
   return NextResponse.json({
     ...result,

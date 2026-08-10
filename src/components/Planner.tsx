@@ -86,6 +86,16 @@ export default function Planner() {
           cuisine: form.cuisine,
           equipment: form.equipment,
           craving: form.craving,
+          // Ask for exactly the section they picked. Anything else is
+          // work nobody requested, and on the AI path a bill for it.
+          want:
+            section === "training"
+              ? "training"
+              : section === "numbers"
+                ? "numbers"
+                : section === "form"
+                  ? "all"
+                  : "food",
         }),
       });
 

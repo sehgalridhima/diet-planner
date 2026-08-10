@@ -36,17 +36,35 @@ export type SectionId =
 
 /** The sections a finished plan fills in, in sidebar order. */
 export function planSections(plan: MealPlan, nutrition: NutritionPlan) {
+  /*
+   * Only what this plan actually holds. A training-only request comes
+   * back with no days in it, and listing an empty "Diet plan" would be
+   * offering something that is not there.
+   */
+  const hasFood = plan.days.length > 0;
+  const hasTraining = plan.workout.length > 0;
+
   return [
     { id: "numbers" as const, label: "Your numbers", hint: `${nutrition.calories} kcal` },
-    { id: "diet" as const, label: "Diet plan", hint: "7 days" },
-    { id: "recipes" as const, label: "Healthy recipes", hint: "methods" },
-    { id: "shopping" as const, label: "Shopping list", hint: "the week" },
-    {
-      id: "training" as const,
-      label: "Workout plan",
-      hint: `${plan.workout.filter((w) => !w.rest).length} sessions`,
-    },
-    { id: "notes" as const, label: "Worth remembering", hint: `${plan.notes.length}` },
+    ...(hasFood
+      ? [
+          { id: "diet" as const, label: "Diet plan", hint: `${plan.days.length} days` },
+          { id: "recipes" as const, label: "Healthy recipes", hint: "methods" },
+          { id: "shopping" as const, label: "Shopping list", hint: "the week" },
+        ]
+      : []),
+    ...(hasTraining
+      ? [
+          {
+            id: "training" as const,
+            label: "Workout plan",
+            hint: `${plan.workout.filter((w) => !w.rest).length} sessions`,
+          },
+        ]
+      : []),
+    ...(plan.notes.length > 0
+      ? [{ id: "notes" as const, label: "Worth remembering", hint: `${plan.notes.length}` }]
+      : []),
   ];
 }
 

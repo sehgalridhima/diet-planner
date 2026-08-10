@@ -1,5 +1,6 @@
 import { buildNutritionPlan, validateInput, type ActivityLevel, type Goal, type UserInput } from "../src/lib/nutrition";
 import { buildBuiltinPlan, buildPool, optionCounts } from "../src/lib/builtin-planner";
+import { buildPlan } from "../src/lib/build-plan";
 import { assembleWeek } from "../src/lib/week";
 import { AVAILABLE, EQUIPMENT_OPTIONS, EXERCISES, buildWorkout, parseEquipment, trainingFrequency, type Equipment } from "../src/lib/workout-planner";
 import { DAYS, MEAL_SLOTS, type DietType, type MealPool } from "../src/lib/plan-types";
@@ -546,6 +547,44 @@ console.log("\n=== Recipes");
     100,
   );
   check("salad is not reported as a missing recipe", recipesForWeek(trivial).unmatchedCount === 0);
+}
+
+/* --- 9c. You get what you asked for, and only that -------------- */
+
+console.log("\n=== Scoped requests");
+{
+  const cases = [
+    { want: "training" as const, food: false, training: true },
+    { want: "numbers" as const, food: false, training: false },
+    { want: "food" as const, food: true, training: false },
+    { want: "all" as const, food: true, training: true },
+  ];
+
+  for (const c of cases) {
+    // Vary the input per case so the cache cannot answer for another want.
+    const input = { ...sample, weightKg: sample.weightKg + cases.indexOf(c) };
+    const { plan } = await buildPlan(input, "veg", "none", { allowAi: false, want: c.want });
+
+    const hasFood = plan.days.length > 0;
+    const hasTraining = plan.workout.length > 0;
+
+    check(
+      `want "${c.want}" -> ${hasFood ? "meals" : "no meals"}, ${hasTraining ? "training" : "no training"}`,
+      hasFood === c.food && hasTraining === c.training,
+      `days ${plan.days.length}, workout ${plan.workout.length}`,
+    );
+  }
+
+  // A food-only plan must not carry deload advice for training it does
+  // not contain.
+  const { plan: foodOnly } = await buildPlan(
+    { ...sample, weightKg: 61 },
+    "veg",
+    "none",
+    { allowAi: false, want: "food" },
+  );
+  const strays = foodOnly.notes.filter((n) => /deload|rep range|training days/.test(n));
+  check("a food-only plan carries no training notes", strays.length === 0, strays.join(" | "));
 }
 
 /* --- 10. A full plan builds end to end -------------------------- */

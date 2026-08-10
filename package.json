@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "check:nutrition": "tsx scripts/check-nutrition.ts",
-    "check:plan": "tsx scripts/check-plan.ts"
+    "check:plan": "tsx scripts/check-plan.mts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",
