@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import PlanView from "@/components/PlanView";
+import TodayPlan from "@/components/TodayPlan";
 import { buildPlan } from "@/lib/build-plan";
 import { getProfile, getWeightLog, requireUser, toUserInput } from "@/lib/profile";
 import { parseEquipment } from "@/lib/workout-planner";
@@ -85,7 +85,7 @@ export default async function TodayPage() {
 
       <LogWeight currentWeightKg={profile.weightKg} />
 
-      <PlanView
+      <TodayPlan
         plan={plan}
         nutrition={nutrition}
         todayIndex={todayIndexIn(profile.timezone)}

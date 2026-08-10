@@ -25,7 +25,30 @@ import Recipes from "@/components/Recipes";
    server rendering one day and the browser another.
    =============================================================== */
 
-type SectionId = "numbers" | "diet" | "recipes" | "shopping" | "training" | "notes";
+export type SectionId =
+  | "form"
+  | "numbers"
+  | "diet"
+  | "recipes"
+  | "shopping"
+  | "training"
+  | "notes";
+
+/** The sections a finished plan fills in, in sidebar order. */
+export function planSections(plan: MealPlan, nutrition: NutritionPlan) {
+  return [
+    { id: "numbers" as const, label: "Your numbers", hint: `${nutrition.calories} kcal` },
+    { id: "diet" as const, label: "Diet plan", hint: "7 days" },
+    { id: "recipes" as const, label: "Healthy recipes", hint: "methods" },
+    { id: "shopping" as const, label: "Shopping list", hint: "the week" },
+    {
+      id: "training" as const,
+      label: "Workout plan",
+      hint: `${plan.workout.filter((w) => !w.rest).length} sessions`,
+    },
+    { id: "notes" as const, label: "Worth remembering", hint: `${plan.notes.length}` },
+  ];
+}
 
 export default function PlanView({
   plan,
@@ -34,6 +57,7 @@ export default function PlanView({
   cached = false,
   notice,
   showNumbers = true,
+  section,
 }: {
   plan: MealPlan;
   nutrition: NutritionPlan;
@@ -41,21 +65,12 @@ export default function PlanView({
   cached?: boolean;
   notice?: string;
   showNumbers?: boolean;
+  /** Which section the page shell has selected */
+  section: SectionId;
 }) {
   const [selectedDay, setSelectedDay] = useState(todayIndex);
-  const [section, setSection] = useState<SectionId>(showNumbers ? "numbers" : "diet");
   const day = plan.days[selectedDay] ?? plan.days[0];
 
-  const sections: { id: SectionId; label: string; hint: string }[] = [
-    ...(showNumbers
-      ? [{ id: "numbers" as const, label: "Your numbers", hint: `${nutrition.calories} kcal` }]
-      : []),
-    { id: "diet", label: "Diet plan", hint: "7 days" },
-    { id: "recipes", label: "Healthy recipes", hint: "how to cook it" },
-    { id: "shopping", label: "Shopping list", hint: "the week" },
-    { id: "training", label: "Workout plan", hint: `${plan.workout.filter((w) => !w.rest).length} sessions` },
-    { id: "notes", label: "Worth remembering", hint: `${plan.notes.length}` },
-  ];
 
   return (
     <section className="animate-rise flex flex-col gap-8">
@@ -79,39 +94,7 @@ export default function PlanView({
         </p>
       )}
 
-      <div className="flex flex-col gap-6 sm:flex-row sm:gap-8">
-        {/* ---- Sidebar. Horizontal scroller on narrow screens. ---- */}
-        <nav
-          aria-label="Plan sections"
-          className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:w-48 sm:shrink-0 sm:flex-col sm:overflow-visible sm:px-0 sm:pb-0"
-        >
-          <div className="sm:sticky sm:top-6 sm:flex sm:flex-col sm:gap-1">
-            {sections.map((s) => {
-              const active = section === s.id;
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => setSection(s.id)}
-                  aria-current={active ? "page" : undefined}
-                  className={`flex shrink-0 items-baseline justify-between gap-3 whitespace-nowrap rounded-xl border px-3.5 py-2.5 text-left text-sm transition-colors sm:w-full sm:whitespace-normal ${
-                    active
-                      ? "border-accent/40 bg-accent-soft text-accent"
-                      : "border-transparent text-muted hover:bg-surface hover:text-foreground"
-                  }`}
-                >
-                  <span className={active ? "font-medium" : ""}>{s.label}</span>
-                  <span className="hidden font-mono text-[0.65rem] opacity-60 sm:inline">
-                    {s.hint}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </nav>
-
-        {/* ---- Panel ---- */}
-        <div className="min-w-0 flex-1">
+      <div>
           {section === "numbers" && showNumbers && (
             <div>
               <h2 className="text-lg font-semibold tracking-tight">Your numbers</h2>
@@ -285,7 +268,6 @@ export default function PlanView({
               </ul>
             </div>
           )}
-        </div>
       </div>
 
       {/* Outside the tabs on purpose: nobody should be able to miss this */}

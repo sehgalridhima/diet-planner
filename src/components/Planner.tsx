@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ACTIVITY_OPTIONS, type NutritionPlan } from "@/lib/nutrition";
 import { CUISINE_OPTIONS, DIET_OPTIONS, type Cuisine, type DietType, type MealPlan } from "@/lib/plan-types";
 import { EQUIPMENT_OPTIONS } from "@/lib/workout-planner";
-import PlanView from "@/components/PlanView";
+import PlanView, { planSections, type SectionId } from "@/components/PlanView";
 
 type HeightUnit = "cm" | "ft";
 
@@ -45,6 +45,14 @@ export default function Planner() {
   const [result, setResult] = useState<ApiResponse | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  /*
+   * The sidebar is always on screen, including before a plan exists.
+   * It was previously nested inside the results, which meant the one
+   * thing it is for — telling you what this app contains — only
+   * appeared once you had already worked that out.
+   */
+  const [section, setSection] = useState<SectionId>("form");
 
   const set = (key: keyof typeof form, value: string) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -87,6 +95,7 @@ export default function Planner() {
         return;
       }
       setResult(data);
+      setSection("numbers");
     } catch {
       setError("Could not reach the server. Check your connection and try again.");
     } finally {
@@ -97,9 +106,52 @@ export default function Planner() {
   const fieldClass =
     "w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-sm transition-colors focus:border-accent";
 
+  const sections = [
+    { id: "form" as const, label: "Your details", hint: result ? "edit" : "start here" },
+    ...(result ? planSections(result.plan, result.nutrition) : []),
+  ];
+
   return (
-    <div className="flex flex-col gap-10">
-      {/* ---------------- FORM ---------------- */}
+    <div className="flex flex-col gap-6 sm:flex-row sm:gap-8">
+      {/* ---------------- SIDEBAR ---------------- */}
+      <nav
+        aria-label="Sections"
+        className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:w-52 sm:shrink-0 sm:flex-col sm:overflow-visible sm:px-0 sm:pb-0"
+      >
+        <div className="sm:sticky sm:top-6 sm:flex sm:flex-col sm:gap-1">
+          {sections.map((s) => {
+            const active = section === s.id;
+            return (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setSection(s.id)}
+                aria-current={active ? "page" : undefined}
+                className={`flex shrink-0 items-baseline justify-between gap-3 whitespace-nowrap rounded-xl border px-3.5 py-2.5 text-left text-sm transition-colors sm:w-full ${
+                  active
+                    ? "border-accent/40 bg-accent-soft text-accent"
+                    : "border-transparent text-muted hover:bg-surface hover:text-foreground"
+                }`}
+              >
+                <span className={active ? "font-medium" : ""}>{s.label}</span>
+                <span className="hidden font-mono text-[0.65rem] opacity-60 sm:inline">
+                  {s.hint}
+                </span>
+              </button>
+            );
+          })}
+
+          {!result && (
+            <p className="mt-3 hidden px-3.5 text-xs leading-relaxed text-muted/70 sm:block">
+              Your plan, recipes, shopping list and training appear here once you build it.
+            </p>
+          )}
+        </div>
+      </nav>
+
+      {/* ---------------- PANEL ---------------- */}
+      <div className="min-w-0 flex-1">
+      {section === "form" && (
       <form
         onSubmit={handleSubmit}
         className="rounded-2xl border border-border bg-surface/60 p-6 sm:p-8"
@@ -321,16 +373,19 @@ export default function Planner() {
         </button>
       </form>
 
-      {/* ---------------- RESULTS ---------------- */}
-      {result && (
+      )}
+
+      {result && section !== "form" && (
         <PlanView
           plan={result.plan}
           nutrition={result.nutrition}
           todayIndex={todayIndex()}
           cached={result.cached}
           notice={result.notice}
+          section={section}
         />
       )}
+      </div>
     </div>
   );
 }
