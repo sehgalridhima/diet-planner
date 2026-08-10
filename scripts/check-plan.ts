@@ -372,6 +372,9 @@ for (const [raw, qty, unit, text] of [
   ["2 roti (70 g atta)", 70, "g", "atta"],
   // No weight stated, so the parenthetical is dropped rather than parsed.
   ["1 katori paneer tikka (tawa, less oil)", 1, "katori", "paneer tikka"],
+  // "toned" describes the milk, it is not a thing you can buy.
+  ["1 cup chai (no sugar, 100 ml toned)", 100, "ml", "chai"],
+  ["1 glass milk (200 ml toned milk)", 200, "ml", "toned milk"],
 ] as const) {
   const p = parsePortion(raw);
   check(
@@ -417,6 +420,19 @@ for (const [raw, qty, unit, text] of [
       .join(" | "),
   );
 
+  for (const [text, expected] of [
+    ["1 cup black chai", "Tea / coffee"],
+    ["1 orange", "Oranges"],
+    ["1 katori kadhi", "Kadhi (besan + curd)"],
+    ["1 tsp oil", "Cooking oil"],
+    ["1 glass toned milk", "Milk"],
+  ] as const) {
+    const got = buildGroceryList([
+      { day: "Mon", meals: [{ slot: "Snack", items: [text], calories: 1, proteinG: 0, swap: "" }], calories: 1, proteinG: 0 },
+    ])[0];
+    check(`"${text}" -> ${expected}`, got?.name === expected, `got ${got?.name} (${got?.category})`);
+  }
+
   check("soy milk is not counted as milk", !list.some((i) => i.name === "Milk" && i.unit === "glass" && i.quantity === 0));
 
   const names = list.map((i) => i.name);
@@ -435,7 +451,7 @@ for (const [raw, qty, unit, text] of [
     roti ? `only ${roti.quantity}g` : "no atta line found",
   );
 
-  const junk = list.filter((i) => /^(cooked|raw|dry)$/i.test(i.name));
+  const junk = list.filter((i) => /^(cooked|raw|dry|toned|skimmed|fresh)$/i.test(i.name));
   check("no shopping line named after a weight qualifier", junk.length === 0, junk.map((i) => i.name).join(", "));
 }
 

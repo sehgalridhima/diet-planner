@@ -89,6 +89,7 @@ const RULES: Rule[] = [
   { match: /roasted chana/, name: "Roasted chana", category: "Dals & pulses" },
   { match: /chole|chana/, name: "Chana (chole)", category: "Dals & pulses" },
   { match: /lobia/, name: "Lobia", category: "Dals & pulses" },
+  { match: /kadhi/, name: "Kadhi (besan + curd)", category: "Dals & pulses" },
   { match: /sprouts/, name: "Sprouts", category: "Dals & pulses" },
   { match: /moong/, name: "Moong dal", category: "Dals & pulses" },
   { match: /dal|sambar/, name: "Dal", category: "Dals & pulses" },
@@ -120,6 +121,9 @@ const RULES: Rule[] = [
   { match: /banana/, name: "Bananas", category: "Vegetables & fruit" },
   { match: /apple/, name: "Apples", category: "Vegetables & fruit" },
   { match: /cucumber/, name: "Cucumber", category: "Vegetables & fruit" },
+  { match: /orange|mosambi|sweet lime/, name: "Oranges", category: "Vegetables & fruit" },
+  { match: /papaya/, name: "Papaya", category: "Vegetables & fruit" },
+  { match: /guava|pear|pomegranate|melon|grapes|mango/, name: "Seasonal fruit", category: "Vegetables & fruit" },
   { match: /fruit/, name: "Fruit", category: "Vegetables & fruit" },
   {
     match: /salad|vegetable|sabzi|bhindi|lauki|palak|cabbage|beans|poriyal|stir fry|onion|tomato/,
@@ -131,7 +135,8 @@ const RULES: Rule[] = [
   { match: /chutney/, name: "Chutney", category: "Other" },
   { match: /papad/, name: "Papad", category: "Other" },
   { match: /jaggery/, name: "Jaggery", category: "Other" },
-  { match: /tea|coffee/, name: "Tea / coffee", category: "Other" },
+  { match: /tea|coffee|chai/, name: "Tea / coffee", category: "Other" },
+  { match: /\boil\b/, name: "Cooking oil", category: "Other" },
 ];
 
 const UNITS = ["katori", "bowl", "glass", "cup", "tbsp", "tsp", "small", "large"];
@@ -142,7 +147,8 @@ const UNITS = ["katori", "bowl", "glass", "cup", "tbsp", "tsp", "small", "large"
  * called cooked — which is exactly what the shopping list said before
  * this existed.
  */
-const QUALIFIERS = /^(cooked|raw|dry|uncooked|boiled|soaked|each|total|approx)$/;
+const QUALIFIERS =
+  /^(cooked|raw|dry|uncooked|boiled|soaked|each|total|approx|toned|double toned|skimmed|skim|full fat|full-fat|low fat|low-fat|fresh)$/;
 
 /** Strips a leading count and serving unit: "1 katori dal" -> "dal". */
 function stripCount(text: string): string {
