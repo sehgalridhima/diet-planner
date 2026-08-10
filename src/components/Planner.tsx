@@ -95,7 +95,10 @@ export default function Planner() {
         return;
       }
       setResult(data);
-      setSection("numbers");
+      // Land on whatever they asked for. Someone who picked "Workout
+      // plan" before answering anything did so for a reason; dropping
+      // them on the calorie breakdown ignores it.
+      if (section === "form") setSection("numbers");
     } catch {
       setError("Could not reach the server. Check your connection and try again.");
     } finally {
@@ -106,10 +109,41 @@ export default function Planner() {
   const fieldClass =
     "w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-sm transition-colors focus:border-accent";
 
-  const sections = [
-    { id: "form" as const, label: "Your details", hint: result ? "edit" : "start here" },
-    ...(result ? planSections(result.plan, result.nutrition) : []),
-  ];
+  /*
+   * The whole menu is on screen from the first second, so you can say
+   * "I only want the workout plan" before answering anything. Picking a
+   * section before there is a plan decides which questions you are
+   * asked: nobody choosing a training plan should have to declare
+   * whether they are vegan.
+   */
+  const sections = result
+    ? [
+        { id: "form" as const, label: "Your details", hint: "edit" },
+        ...planSections(result.plan, result.nutrition),
+      ]
+    : [
+        { id: "form" as const, label: "Your details", hint: "everything" },
+        { id: "numbers" as const, label: "Your numbers", hint: "calories" },
+        { id: "diet" as const, label: "Diet plan", hint: "7 days" },
+        { id: "recipes" as const, label: "Healthy recipes", hint: "methods" },
+        { id: "shopping" as const, label: "Shopping list", hint: "the week" },
+        { id: "training" as const, label: "Workout plan", hint: "training" },
+        { id: "notes" as const, label: "Worth remembering", hint: "notes" },
+      ];
+
+  /** What each section actually needs answered. */
+  const NEEDS: Record<SectionId, { food: boolean; equipment: boolean }> = {
+    form: { food: true, equipment: true },
+    numbers: { food: false, equipment: false },
+    diet: { food: true, equipment: false },
+    recipes: { food: true, equipment: false },
+    shopping: { food: true, equipment: false },
+    training: { food: false, equipment: true },
+    notes: { food: true, equipment: true },
+  };
+
+  const needs = NEEDS[section];
+  const asking = sections.find((x) => x.id === section)?.label ?? "your plan";
 
   return (
     <div className="flex flex-col gap-6 sm:flex-row sm:gap-8">
@@ -151,7 +185,16 @@ export default function Planner() {
 
       {/* ---------------- PANEL ---------------- */}
       <div className="min-w-0 flex-1">
-      {section === "form" && (
+      {(section === "form" || !result) && (
+      <>
+      {section !== "form" && (
+        <div className="mb-5">
+          <h2 className="text-lg font-semibold tracking-tight">{asking}</h2>
+          <p className="mt-1 text-sm text-muted">
+            Answer these and it appears here. Only what this section needs is asked.
+          </p>
+        </div>
+      )}
       <form
         onSubmit={handleSubmit}
         className="rounded-2xl border border-border bg-surface/60 p-6 sm:p-8"
@@ -250,6 +293,7 @@ export default function Planner() {
             />
           </Field>
 
+          {needs.food && (
           <Field label="Craving anything?" hint="optional">
             <input
               type="text"
@@ -264,6 +308,7 @@ export default function Planner() {
               is the one you actually follow.
             </span>
           </Field>
+          )}
 
           <Field label="Measured BMR" hint="optional">
             <input
@@ -296,6 +341,7 @@ export default function Planner() {
             </select>
           </Field>
 
+          {needs.equipment && (
           <Field label="Equipment" hint="what you actually have">
             <select
               value={form.equipment}
@@ -309,6 +355,7 @@ export default function Planner() {
               ))}
             </select>
           </Field>
+          )}
         </div>
 
         <div className="mt-7">
@@ -326,6 +373,7 @@ export default function Planner() {
           </div>
         </div>
 
+        {needs.food && (
         <div className="mt-6">
           <p className="mb-2.5 text-sm font-medium">Diet</p>
           <div className="flex flex-wrap gap-2">
@@ -357,6 +405,7 @@ export default function Planner() {
             ))}
           </div>
         </div>
+        )}
 
         {error && (
           <p className="mt-6 rounded-xl border border-warn/40 bg-warn-soft px-4 py-3 text-sm text-warn">
@@ -373,6 +422,7 @@ export default function Planner() {
         </button>
       </form>
 
+      </>
       )}
 
       {result && section !== "form" && (
