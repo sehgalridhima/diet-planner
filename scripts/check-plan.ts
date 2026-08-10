@@ -5,6 +5,7 @@ import { AVAILABLE, EQUIPMENT_OPTIONS, EXERCISES, buildWorkout, parseEquipment, 
 import { DAYS, MEAL_SLOTS, type DietType, type MealPool } from "../src/lib/plan-types";
 import { topUpPool } from "../src/lib/ai-planner";
 import { buildGroceryList, parsePortion } from "../src/lib/grocery";
+import { RECIPES, recipesForWeek } from "../src/lib/recipes";
 
 /* ===============================================================
    PLAN CHECKS
@@ -511,6 +512,40 @@ console.log("\n=== A thin or duplicated AI pool is topped up");
     }),
   );
   check("topped-up vegan pool contains no dairy", leaked.length === 0, JSON.stringify(leaked));
+}
+
+/* --- 9b. The recipe book covers the staples --------------------- */
+
+console.log("\n=== Recipes");
+{
+  const names = RECIPES.map((r) => r.name);
+  check(
+    `${RECIPES.length} recipes, all uniquely named`,
+    new Set(names).size === names.length,
+    "duplicate recipe name",
+  );
+
+  const thin = RECIPES.filter((r) => r.steps.length < 3 || r.ingredients.length < 2);
+  check("every recipe has ingredients and at least three steps", thin.length === 0, thin.map((r) => r.name).join(", "));
+
+  for (const diet of DIETS) {
+    const nutrition = buildNutritionPlan(sample);
+    const days = assembleWeek(buildPool(diet), nutrition.calories, nutrition.macros.proteinG);
+    const { matched, coveredCount, unmatchedCount } = recipesForWeek(days);
+    check(
+      `${diet.padEnd(7)} ${matched.length} recipes cover ${coveredCount} dishes, ${unmatchedCount} cooked dishes without one`,
+      matched.length >= 8,
+      "too few of the week's dishes have a method",
+    );
+  }
+
+  // Trivia must not be counted as a gap, or the number is meaningless.
+  const trivial = assembleWeek(
+    { Breakfast: [{ items: ["salad"], calories: 10, proteinG: 0 }], Lunch: [], Snack: [], Dinner: [] },
+    2000,
+    100,
+  );
+  check("salad is not reported as a missing recipe", recipesForWeek(trivial).unmatchedCount === 0);
 }
 
 /* --- 10. A full plan builds end to end -------------------------- */

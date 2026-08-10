@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useRef } from "react";
 import { saveProfileAction } from "@/app/actions";
 import { ACTIVITY_OPTIONS } from "@/lib/nutrition";
-import { DIET_OPTIONS } from "@/lib/plan-types";
+import { CUISINE_OPTIONS, DIET_OPTIONS } from "@/lib/plan-types";
 import { EQUIPMENT_OPTIONS } from "@/lib/workout-planner";
 import type { Profile } from "@/lib/profile";
 
@@ -141,6 +141,16 @@ export default function ProfileForm({ profile }: { profile: Profile | null }) {
             {DIET_OPTIONS.map((d) => (
               <option key={d.value} value={d.value}>
                 {d.label} — {d.hint}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        <Field label="Cuisine" hint="what you like cooking">
+          <select name="cuisine" defaultValue={profile?.cuisine ?? "any"} className={field}>
+            {CUISINE_OPTIONS.map((c) => (
+              <option key={c.value} value={c.value}>
+                {c.label}
               </option>
             ))}
           </select>

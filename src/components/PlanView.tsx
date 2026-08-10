@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { NutritionPlan } from "@/lib/nutrition";
 import type { MealPlan } from "@/lib/plan-types";
 import GroceryList from "@/components/GroceryList";
+import Recipes from "@/components/Recipes";
 
 /* ===============================================================
    PLAN VIEW
@@ -11,11 +12,20 @@ import GroceryList from "@/components/GroceryList";
    Shared by the anonymous form and the signed-in /today page, so
    the two can never drift into showing the same week differently.
 
+   A week of meals, a shopping list, a training plan and a recipe
+   book is far too much to stack on one page, so it is sectioned
+   behind a sidebar. Two things stay outside that: the safety
+   warnings and the medical disclaimer. Anything that exists to be
+   read before you act on the plan cannot sit behind a tab the
+   reader might never open.
+
    `todayIndex` is passed in rather than computed here. The signed-in
    page works it out from the timezone on the profile; the anonymous
    form reads the browser's clock. Computing it inside would mean the
    server rendering one day and the browser another.
    =============================================================== */
+
+type SectionId = "numbers" | "diet" | "recipes" | "shopping" | "training" | "notes";
 
 export default function PlanView({
   plan,
@@ -33,11 +43,23 @@ export default function PlanView({
   showNumbers?: boolean;
 }) {
   const [selectedDay, setSelectedDay] = useState(todayIndex);
+  const [section, setSection] = useState<SectionId>(showNumbers ? "numbers" : "diet");
   const day = plan.days[selectedDay] ?? plan.days[0];
+
+  const sections: { id: SectionId; label: string; hint: string }[] = [
+    ...(showNumbers
+      ? [{ id: "numbers" as const, label: "Your numbers", hint: `${nutrition.calories} kcal` }]
+      : []),
+    { id: "diet", label: "Diet plan", hint: "7 days" },
+    { id: "recipes", label: "Healthy recipes", hint: "how to cook it" },
+    { id: "shopping", label: "Shopping list", hint: "the week" },
+    { id: "training", label: "Workout plan", hint: `${plan.workout.filter((w) => !w.rest).length} sessions` },
+    { id: "notes", label: "Worth remembering", hint: `${plan.notes.length}` },
+  ];
 
   return (
     <section className="animate-rise flex flex-col gap-8">
-      {/* Safety warnings come before anything else */}
+      {/* Safety warnings come before anything else, and outside the tabs */}
       {nutrition.warnings.length > 0 && (
         <div className="rounded-2xl border border-warn/40 bg-warn-soft p-5">
           <h2 className="text-sm font-semibold text-warn">Worth reading first</h2>
@@ -57,169 +79,216 @@ export default function PlanView({
         </p>
       )}
 
-      {/* ---- Numbers ---- */}
-      {showNumbers && (
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight">Your numbers</h2>
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <Stat label="Daily calories" value={`${nutrition.calories}`} unit="kcal" primary />
-            <Stat label="Protein" value={`${nutrition.macros.proteinG}`} unit="g" />
-            <Stat label="Carbs" value={`${nutrition.macros.carbsG}`} unit="g" />
-            <Stat label="Fat" value={`${nutrition.macros.fatG}`} unit="g" />
+      <div className="flex flex-col gap-6 sm:flex-row sm:gap-8">
+        {/* ---- Sidebar. Horizontal scroller on narrow screens. ---- */}
+        <nav
+          aria-label="Plan sections"
+          className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:w-48 sm:shrink-0 sm:flex-col sm:overflow-visible sm:px-0 sm:pb-0"
+        >
+          <div className="sm:sticky sm:top-6 sm:flex sm:flex-col sm:gap-1">
+            {sections.map((s) => {
+              const active = section === s.id;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setSection(s.id)}
+                  aria-current={active ? "page" : undefined}
+                  className={`flex shrink-0 items-baseline justify-between gap-3 whitespace-nowrap rounded-xl border px-3.5 py-2.5 text-left text-sm transition-colors sm:w-full sm:whitespace-normal ${
+                    active
+                      ? "border-accent/40 bg-accent-soft text-accent"
+                      : "border-transparent text-muted hover:bg-surface hover:text-foreground"
+                  }`}
+                >
+                  <span className={active ? "font-medium" : ""}>{s.label}</span>
+                  <span className="hidden font-mono text-[0.65rem] opacity-60 sm:inline">
+                    {s.hint}
+                  </span>
+                </button>
+              );
+            })}
           </div>
+        </nav>
 
-          <dl className="mt-4 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
-            <Row
-              label={
-                nutrition.bmrSource === "measured"
-                  ? "BMR (yours, as measured)"
-                  : "BMR (at complete rest)"
-              }
-              value={
-                nutrition.bmrSource === "measured"
-                  ? `${nutrition.bmr} kcal · formula said ${nutrition.estimatedBmr}`
-                  : `${nutrition.bmr} kcal`
-              }
-            />
-            <Row label="TDEE (with your activity)" value={`${nutrition.tdee} kcal`} />
-            <Row label="BMI" value={`${nutrition.bmi} — ${nutrition.bmiCategory}`} />
-            <Row
-              label="Healthy weight for your height"
-              value={`${nutrition.healthyWeightRange.min}–${nutrition.healthyWeightRange.max} kg`}
-            />
-            {nutrition.weeklyChangeKg !== 0 && (
-              <Row
-                label="Expected change"
-                value={`${nutrition.weeklyChangeKg > 0 ? "+" : ""}${nutrition.weeklyChangeKg} kg per week`}
-              />
-            )}
-          </dl>
-        </div>
-      )}
+        {/* ---- Panel ---- */}
+        <div className="min-w-0 flex-1">
+          {section === "numbers" && showNumbers && (
+            <div>
+              <h2 className="text-lg font-semibold tracking-tight">Your numbers</h2>
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <Stat label="Daily calories" value={`${nutrition.calories}`} unit="kcal" primary />
+                <Stat label="Protein" value={`${nutrition.macros.proteinG}`} unit="g" />
+                <Stat label="Carbs" value={`${nutrition.macros.carbsG}`} unit="g" />
+                <Stat label="Fat" value={`${nutrition.macros.fatG}`} unit="g" />
+              </div>
 
-      {/* ---- Meals ---- */}
-      <div>
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-lg font-semibold tracking-tight">
-            {selectedDay === todayIndex ? "Today's eating" : `${day.day}'s eating`}
-          </h2>
-          <p className="text-xs text-muted">
-            {day.calories} kcal · {day.proteinG}g protein
-          </p>
-        </div>
+              <dl className="mt-4 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+                <Row
+                  label={
+                    nutrition.bmrSource === "measured"
+                      ? "BMR (yours, as measured)"
+                      : "BMR (at complete rest)"
+                  }
+                  value={
+                    nutrition.bmrSource === "measured"
+                      ? `${nutrition.bmr} kcal · formula said ${nutrition.estimatedBmr}`
+                      : `${nutrition.bmr} kcal`
+                  }
+                />
+                <Row label="TDEE (with your activity)" value={`${nutrition.tdee} kcal`} />
+                <Row label="BMI" value={`${nutrition.bmi} — ${nutrition.bmiCategory}`} />
+                <Row
+                  label="Healthy weight for your height"
+                  value={`${nutrition.healthyWeightRange.min}–${nutrition.healthyWeightRange.max} kg`}
+                />
+                {nutrition.weeklyChangeKg !== 0 && (
+                  <Row
+                    label="Expected change"
+                    value={`${nutrition.weeklyChangeKg > 0 ? "+" : ""}${nutrition.weeklyChangeKg} kg per week`}
+                  />
+                )}
+              </dl>
+            </div>
+          )}
 
-        {/* Seven days at once is a wall, so open on today and let the rest wait */}
-        <div className="mt-4 flex flex-wrap gap-2">
-          {plan.days.map((d, i) => (
-            <button
-              key={d.day}
-              type="button"
-              onClick={() => setSelectedDay(i)}
-              aria-pressed={i === selectedDay}
-              className={`rounded-full border px-3.5 py-1.5 text-xs transition-all ${
-                i === selectedDay
-                  ? "border-accent bg-accent text-accent-contrast"
-                  : "border-border text-muted hover:border-accent/40 hover:text-foreground"
-              }`}
-            >
-              {d.day}
-              {i === todayIndex && <span className="ml-1 opacity-70">·</span>}
-            </button>
-          ))}
-        </div>
-
-        <div className="mt-4 flex flex-col gap-3">
-          {day.meals.map((meal) => (
-            <div key={meal.slot} className="rounded-2xl border border-border bg-surface p-5">
+          {section === "diet" && (
+            <div>
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h3 className="font-medium">{meal.slot}</h3>
-                <p className="font-mono text-xs text-muted">
-                  {meal.calories} kcal · {meal.proteinG}g protein
+                <h2 className="text-lg font-semibold tracking-tight">
+                  {selectedDay === todayIndex ? "Today's eating" : `${day.day}'s eating`}
+                </h2>
+                <p className="text-xs text-muted">
+                  {day.calories} kcal · {day.proteinG}g protein
                 </p>
               </div>
-              <ul className="mt-3 flex flex-col gap-1">
-                {meal.items.map((item, i) => (
-                  <li key={i} className="text-sm text-muted">
-                    {item}
-                  </li>
+
+              {/* Seven days at once is a wall, so open on today */}
+              <div className="mt-4 flex flex-wrap gap-2">
+                {plan.days.map((d, i) => (
+                  <button
+                    key={d.day}
+                    type="button"
+                    onClick={() => setSelectedDay(i)}
+                    aria-pressed={i === selectedDay}
+                    className={`rounded-full border px-3.5 py-1.5 text-xs transition-all ${
+                      i === selectedDay
+                        ? "border-accent bg-accent text-accent-contrast"
+                        : "border-border text-muted hover:border-accent/40 hover:text-foreground"
+                    }`}
+                  >
+                    {d.day}
+                    {i === todayIndex && <span className="ml-1 opacity-70">·</span>}
+                  </button>
                 ))}
-              </ul>
-              {meal.swap && (
-                <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
-                  <span className="font-medium text-foreground">Don&rsquo;t want this? </span>
-                  {meal.swap}
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
+              </div>
 
-      {/* ---- Grocery list ---- */}
-      <GroceryList days={plan.days} />
-
-      {/* ---- Workout ---- */}
-      {plan.workout.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight">Your week of training</h2>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {plan.workout.map((w, i) => (
-              <div
-                key={w.day}
-                className={`rounded-2xl border p-4 ${
-                  i === todayIndex
-                    ? "border-accent/40 bg-accent-soft"
-                    : w.rest
-                      ? "border-border bg-surface-2"
-                      : "border-border bg-surface"
-                }`}
-              >
-                <div className="flex items-baseline gap-2">
-                  <span className="font-mono text-xs text-accent">{w.day}</span>
-                  <h3 className={`text-sm font-medium ${w.rest ? "text-muted" : ""}`}>
-                    {w.focus}
-                  </h3>
-                  {i === todayIndex && <span className="ml-auto text-xs text-accent">today</span>}
-                </div>
-                {w.blocks.map((block) => (
-                  <div key={block.name} className="mt-3">
-                    {/* Rest days have one unnamed-feeling block; naming it
-                        "Recovery" and then labelling it too reads as shouting */}
-                    {!w.rest && (
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted/70">
-                        {block.name}
+              <div className="mt-4 flex flex-col gap-3">
+                {day.meals.map((meal) => (
+                  <div key={meal.slot} className="rounded-2xl border border-border bg-surface p-5">
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <h3 className="font-medium">{meal.slot}</h3>
+                      <p className="font-mono text-xs text-muted">
+                        {meal.calories} kcal · {meal.proteinG}g protein
                       </p>
-                    )}
-                    <ul className="mt-1 flex flex-col gap-1">
-                      {block.items.map((item, j) => (
-                        <li key={j} className="text-sm text-muted">
+                    </div>
+                    <ul className="mt-3 flex flex-col gap-1">
+                      {meal.items.map((item, i) => (
+                        <li key={i} className="text-sm text-muted">
                           {item}
                         </li>
                       ))}
                     </ul>
+                    {meal.swap && (
+                      <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
+                        <span className="font-medium text-foreground">
+                          Don&rsquo;t want this?{" "}
+                        </span>
+                        {meal.swap}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+            </div>
+          )}
 
-      {/* ---- Notes ---- */}
-      {plan.notes.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight">Worth remembering</h2>
-          <ul className="mt-4 flex flex-col gap-2.5">
-            {plan.notes.map((note, i) => (
-              <li key={i} className="flex gap-3 text-sm leading-relaxed text-muted">
-                <span className="text-accent">—</span>
-                {note}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+          {section === "recipes" && (
+            <div>
+              <h2 className="text-lg font-semibold tracking-tight">Healthy recipes</h2>
+              <p className="mt-1 text-sm text-muted">
+                For the dishes in your week, at the portions and the oil the plan assumes.
+              </p>
+              <div className="mt-4">
+                <Recipes days={plan.days} />
+              </div>
+            </div>
+          )}
 
+          {section === "shopping" && <GroceryList days={plan.days} />}
+
+          {section === "training" && plan.workout.length > 0 && (
+            <div>
+              <h2 className="text-lg font-semibold tracking-tight">Your week of training</h2>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {plan.workout.map((w, i) => (
+                  <div
+                    key={w.day}
+                    className={`rounded-2xl border p-4 ${
+                      i === todayIndex
+                        ? "border-accent/40 bg-accent-soft"
+                        : w.rest
+                          ? "border-border bg-surface-2"
+                          : "border-border bg-surface"
+                    }`}
+                  >
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-mono text-xs text-accent">{w.day}</span>
+                      <h3 className={`text-sm font-medium ${w.rest ? "text-muted" : ""}`}>
+                        {w.focus}
+                      </h3>
+                      {i === todayIndex && (
+                        <span className="ml-auto text-xs text-accent">today</span>
+                      )}
+                    </div>
+                    {w.blocks.map((block) => (
+                      <div key={block.name} className="mt-3">
+                        {!w.rest && (
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted/70">
+                            {block.name}
+                          </p>
+                        )}
+                        <ul className="mt-1 flex flex-col gap-1">
+                          {block.items.map((item, j) => (
+                            <li key={j} className="text-sm text-muted">
+                              {item}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {section === "notes" && plan.notes.length > 0 && (
+            <div>
+              <h2 className="text-lg font-semibold tracking-tight">Worth remembering</h2>
+              <ul className="mt-4 flex flex-col gap-2.5">
+                {plan.notes.map((note, i) => (
+                  <li key={i} className="flex gap-3 text-sm leading-relaxed text-muted">
+                    <span className="text-accent">—</span>
+                    {note}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Outside the tabs on purpose: nobody should be able to miss this */}
       <footer className="rounded-2xl border border-border bg-surface-2 p-5 text-xs leading-relaxed text-muted">
         <p>
           <strong className="text-foreground">This is not medical advice.</strong> Calories and

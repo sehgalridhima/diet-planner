@@ -25,6 +25,9 @@ create table if not exists public.profiles (
   activity    text    not null check (activity in ('sedentary', 'light', 'moderate', 'active', 'very_active')),
   goal        text    not null check (goal in ('lose', 'maintain', 'gain')),
   diet        text    not null check (diet in ('veg', 'egg', 'nonveg', 'vegan')),
+  -- Regional cuisine to lean the week toward. A preference, not a rule.
+  cuisine     text    not null default 'any'
+                check (cuisine in ('any','north','south','punjabi','gujarati','maharashtrian','bengali','continental')),
   equipment   text    not null default 'Bodyweight only',
   -- Something they actually want to eat. Fed to the planner so the week
   -- includes it rather than making them fight the craving.

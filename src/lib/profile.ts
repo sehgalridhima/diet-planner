@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import type { ActivityLevel, Goal, Sex, UserInput } from "@/lib/nutrition";
-import type { DietType } from "@/lib/plan-types";
+import type { Cuisine, DietType } from "@/lib/plan-types";
 
 /* ===============================================================
    PROFILE — the data access layer
@@ -24,6 +24,8 @@ export type Profile = {
   activity: ActivityLevel;
   goal: Goal;
   diet: DietType;
+  /** Regional cuisine the week should lean toward */
+  cuisine: Cuisine;
   equipment: string;
   /** Something they want to eat, fed to the planner */
   craving: string;
@@ -41,6 +43,8 @@ type ProfileRow = {
   activity: ActivityLevel;
   goal: Goal;
   diet: DietType;
+  /** Regional cuisine the week should lean toward */
+  cuisine: Cuisine;
   equipment: string;
   craving: string | null;
   timezone: string;
@@ -57,6 +61,7 @@ function fromRow(row: ProfileRow): Profile {
     activity: row.activity,
     goal: row.goal,
     diet: row.diet,
+    cuisine: row.cuisine ?? "any",
     equipment: row.equipment,
     craving: row.craving ?? "",
     timezone: row.timezone,
@@ -131,6 +136,7 @@ export async function saveProfile(input: ProfileInput): Promise<{ error?: string
     activity: input.activity,
     goal: input.goal,
     diet: input.diet,
+    cuisine: input.cuisine,
     equipment: input.equipment,
     craving: input.craving || null,
     timezone: input.timezone,

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ACTIVITY_OPTIONS, type NutritionPlan } from "@/lib/nutrition";
-import { DIET_OPTIONS, type DietType, type MealPlan } from "@/lib/plan-types";
+import { CUISINE_OPTIONS, DIET_OPTIONS, type Cuisine, type DietType, type MealPlan } from "@/lib/plan-types";
 import { EQUIPMENT_OPTIONS } from "@/lib/workout-planner";
 import PlanView from "@/components/PlanView";
 
@@ -37,6 +37,7 @@ export default function Planner() {
     activity: "sedentary",
     goal: "lose",
     diet: "veg" as DietType,
+    cuisine: "any" as Cuisine,
     equipment: "Bodyweight only",
     craving: "",
   });
@@ -74,6 +75,7 @@ export default function Planner() {
           activity: form.activity,
           goal: form.goal,
           diet: form.diet,
+          cuisine: form.cuisine,
           equipment: form.equipment,
           craving: form.craving,
         }),
@@ -281,6 +283,22 @@ export default function Planner() {
                 active={form.diet === option.value}
                 onClick={() => set("diet", option.value)}
                 title={option.hint}
+              >
+                {option.label}
+              </Chip>
+            ))}
+          </div>
+
+          <p className="mb-2.5 mt-5 text-sm font-medium">
+            Cuisine{" "}
+            <span className="font-normal text-muted">— what you actually like cooking</span>
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {CUISINE_OPTIONS.map((option) => (
+              <Chip
+                key={option.value}
+                active={form.cuisine === option.value}
+                onClick={() => set("cuisine", option.value)}
               >
                 {option.label}
               </Chip>

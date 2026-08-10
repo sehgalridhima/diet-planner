@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { validateInput, type Goal, type UserInput } from "@/lib/nutrition";
 import { buildPlan } from "@/lib/build-plan";
 import { parseEquipment } from "@/lib/workout-planner";
-import type { DietType } from "@/lib/plan-types";
+import { CUISINE_OPTIONS, type Cuisine, type DietType } from "@/lib/plan-types";
 
 /* ===============================================================
    PLAN API — for anonymous visitors filling in the form
@@ -80,6 +80,11 @@ export async function POST(request: Request) {
   const craving =
     typeof body.craving === "string" ? body.craving.trim().slice(0, 120) : "";
 
+  const rawCuisine = String(body.cuisine ?? "any");
+  const cuisine: Cuisine = CUISINE_OPTIONS.some((c) => c.value === rawCuisine)
+    ? (rawCuisine as Cuisine)
+    : "any";
+
   if (errors.length > 0) {
     return NextResponse.json({ error: errors.join(" ") }, { status: 400 });
   }
@@ -88,7 +93,7 @@ export async function POST(request: Request) {
   const kit = parseEquipment(equipment);
   const limited = rateLimited(clientKey(request));
 
-  const result = await buildPlan(validInput, diet, kit, { allowAi: !limited, craving });
+  const result = await buildPlan(validInput, diet, kit, { allowAi: !limited, craving, cuisine });
 
   return NextResponse.json({
     ...result,

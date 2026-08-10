@@ -1,7 +1,7 @@
 import { buildNutritionPlan, type NutritionPlan, type UserInput } from "@/lib/nutrition";
 import { buildBuiltinPlan } from "@/lib/builtin-planner";
 import { buildAiPlan, estimateCostInr, hasApiKey } from "@/lib/ai-planner";
-import type { DietType, MealPlan } from "@/lib/plan-types";
+import { CUISINE_OPTIONS, type Cuisine, type DietType, type MealPlan } from "@/lib/plan-types";
 import type { Equipment } from "@/lib/workout-planner";
 
 /* ===============================================================
@@ -43,6 +43,7 @@ function cacheKey(
   diet: DietType,
   equipment: Equipment,
   craving: string,
+  cuisine: Cuisine,
 ): string {
   return [
     Math.round(input.age / 5) * 5,
@@ -58,6 +59,7 @@ function cacheKey(
     input.measuredBmr ? Math.round(input.measuredBmr / 25) * 25 : "-",
     // Two people wanting different things must not share a plan.
     craving.toLowerCase().trim(),
+    cuisine,
   ].join("|");
 }
 
@@ -89,12 +91,20 @@ export async function buildPlan(
   input: UserInput,
   diet: DietType,
   equipment: Equipment,
-  options: { allowAi?: boolean; craving?: string } = {},
+  options: { allowAi?: boolean; craving?: string; cuisine?: Cuisine } = {},
 ): Promise<PlanResult> {
-  const { allowAi = true, craving = "" } = options;
+  const { allowAi = true, craving = "", cuisine = "any" } = options;
+
+  /*
+   * The built-in table cannot invent regional food it does not have,
+   * but it can lean toward what it does. Cuisine keywords ride the same
+   * scoring nudge as the craving.
+   */
+  const cuisineKeywords = CUISINE_OPTIONS.find((c) => c.value === cuisine)?.keywords ?? [];
+  const preference = [craving, ...cuisineKeywords].filter(Boolean).join(" ");
 
   const nutrition = buildNutritionPlan(input);
-  const key = cacheKey(input, diet, equipment, craving);
+  const key = cacheKey(input, diet, equipment, craving, cuisine);
 
   const cached = readCache(key);
   if (cached) {
@@ -103,7 +113,7 @@ export async function buildPlan(
 
   if (allowAi && hasApiKey()) {
     try {
-      const { plan, usage } = await buildAiPlan(nutrition, input, diet, equipment, craving);
+      const { plan, usage } = await buildAiPlan(nutrition, input, diet, equipment, craving, cuisine);
       writeCache(key, { plan, nutrition, storedAt: Date.now() });
       console.log(
         `[plan] AI ok — in ${usage.inputTokens}, cached-in ${usage.cacheReadTokens}, out ${usage.outputTokens}, approx Rs.${estimateCostInr(usage).toFixed(2)}`,
@@ -114,7 +124,7 @@ export async function buildPlan(
     }
   }
 
-  const plan = buildBuiltinPlan(nutrition, input, diet, equipment, craving);
+  const plan = buildBuiltinPlan(nutrition, input, diet, equipment, preference);
   writeCache(key, { plan, nutrition, storedAt: Date.now() });
   return { plan, nutrition, cached: false };
 }

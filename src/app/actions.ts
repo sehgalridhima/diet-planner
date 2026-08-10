@@ -10,7 +10,7 @@ import {
   type ProfileInput,
 } from "@/lib/profile";
 import type { ActivityLevel, Goal, Sex } from "@/lib/nutrition";
-import type { DietType } from "@/lib/plan-types";
+import { CUISINE_OPTIONS, type Cuisine, type DietType } from "@/lib/plan-types";
 
 /* ===============================================================
    SERVER ACTIONS
@@ -25,6 +25,7 @@ const SEXES: Sex[] = ["female", "male"];
 const ACTIVITIES: ActivityLevel[] = ["sedentary", "light", "moderate", "active", "very_active"];
 const GOALS: Goal[] = ["lose", "maintain", "gain"];
 const DIETS: DietType[] = ["veg", "egg", "nonveg", "vegan"];
+const CUISINES: Cuisine[] = CUISINE_OPTIONS.map((c) => c.value);
 
 function pick<T extends string>(value: FormDataEntryValue | null, allowed: T[]): T | null {
   const s = String(value ?? "");
@@ -53,6 +54,7 @@ export async function saveProfileAction(_prev: unknown, formData: FormData) {
   const activity = pick(formData.get("activity"), ACTIVITIES);
   const goal = pick(formData.get("goal"), GOALS);
   const diet = pick(formData.get("diet"), DIETS);
+  const cuisine = pick(formData.get("cuisine"), CUISINES) ?? "any";
   const equipment = String(formData.get("equipment") ?? "Bodyweight only").slice(0, 120);
   const craving = String(formData.get("craving") ?? "").trim().slice(0, 120);
 
@@ -74,6 +76,7 @@ export async function saveProfileAction(_prev: unknown, formData: FormData) {
     activity,
     goal,
     diet,
+    cuisine,
     equipment,
     craving,
     timezone,

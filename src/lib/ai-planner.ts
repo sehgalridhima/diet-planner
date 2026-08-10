@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { MEAL_SLOTS, type DietType, type Dish, type MealPlan, type MealPool } from "@/lib/plan-types";
+import { CUISINE_OPTIONS, MEAL_SLOTS, type Cuisine, type DietType, type Dish, type MealPlan, type MealPool } from "@/lib/plan-types";
 import type { Goal, NutritionPlan, UserInput } from "@/lib/nutrition";
 import { assembleWeek } from "@/lib/week";
 import { buildPool } from "@/lib/builtin-planner";
@@ -71,7 +71,9 @@ RULES
 
 10. Nothing else that comes in a tub or a packet. No fat burners, no appetite suppressants, no meal-replacement shakes, no creatine loading protocols, no fasting protocols, no medication, and nothing that would need a doctor's supervision.
 
-11. If the person names a food they are craving, build it into the plan rather than leaving it out. Fit it to the calorie target — a smaller portion, or a lighter meal elsewhere in the day to make room — and put it in the meal it belongs in. A plan someone enjoys gets followed; a technically perfect one they resent does not. Never lecture them about the craving, and never substitute something "healthier" and pretend it is the same thing.
+11. If a regional cuisine is named, cook in it. South Indian means idli, dosa, sambar, rasam, poriyal, upma and curd rice, not roti and sabzi with a curry leaf on top. Bengali means fish in mustard, cholar dal, shukto, luchi. Gujarati means dhokla, thepla, handvo, kadhi. Continental means the person wants oats, grilled protein, salads and pasta rather than Indian food, and rule 1 gives way to that. Regional cooking is the point of naming a region, so change the grains, the fats and the technique, not just the name of the sabzi.
+
+12. If the person names a food they are craving, build it into the plan rather than leaving it out. Fit it to the calorie target — a smaller portion, or a lighter meal elsewhere in the day to make room — and put it in the meal it belongs in. A plan someone enjoys gets followed; a technically perfect one they resent does not. Never lecture them about the craving, and never substitute something "healthier" and pretend it is the same thing.
 
 Write in plain, warm English. Short sentences. Assume the reader is busy and slightly sceptical of diet plans, because they have been given useless ones before.`;
 
@@ -196,8 +198,13 @@ export async function buildAiPlan(
   equipment: Equipment,
   /** Something they actually want to eat this week, in their words */
   craving = "",
+  /** Regional cuisine to lean the week toward */
+  cuisine: Cuisine = "any",
 ): Promise<AiResult> {
   const client = new Anthropic();
+
+  const cuisineLabel =
+    cuisine === "any" ? "" : (CUISINE_OPTIONS.find((c) => c.value === cuisine)?.label ?? "");
 
   // Per-dish targets, so Claude aims at a meal rather than a day.
   const perSlot = MEAL_SLOTS.map((slot) => {
@@ -239,7 +246,7 @@ ${perSlot}
 
 Person:
 - Goal: ${GOAL_LABEL[input.goal]}
-- Diet: ${DIET_LABEL[diet]}${craving ? `\n- Craving right now: ${craving}` : ""}
+- Diet: ${DIET_LABEL[diet]}${cuisineLabel ? `\n- Cuisine they want: ${cuisineLabel}` : ""}${craving ? `\n- Craving right now: ${craving}` : ""}
 
 Return ${DISHES_PER_SLOT} clearly different options for breakfast, lunch, snack and dinner.${
           craving

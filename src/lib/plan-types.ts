@@ -15,6 +15,68 @@ export const DIET_OPTIONS: { value: DietType; label: string; hint: string }[] = 
   { value: "vegan", label: "Vegan", hint: "No dairy either" },
 ];
 
+/**
+ * Regional cuisine, as a preference rather than a rule.
+ *
+ * The keywords are what the built-in planner has to work with: its
+ * table is mostly pan-Indian staples, so it can lean a week toward a
+ * region but cannot invent Bengali food it does not have. Claude can,
+ * and does, which is why the label goes into the prompt as well.
+ */
+export type Cuisine =
+  | "any"
+  | "north"
+  | "south"
+  | "punjabi"
+  | "gujarati"
+  | "maharashtrian"
+  | "bengali"
+  | "continental";
+
+export const CUISINE_OPTIONS: {
+  value: Cuisine;
+  label: string;
+  /** Fed to the built-in planner's scoring as a nudge */
+  keywords: string[];
+}[] = [
+  { value: "any", label: "Anything", keywords: [] },
+  {
+    value: "north",
+    label: "North Indian",
+    keywords: ["roti", "dal", "sabzi", "rajma", "chole", "paneer", "paratha"],
+  },
+  {
+    value: "south",
+    label: "South Indian",
+    keywords: ["idli", "dosa", "sambar", "poriyal", "rasam", "upma", "curd rice", "uttapam"],
+  },
+  {
+    value: "punjabi",
+    label: "Punjabi",
+    keywords: ["rajma", "chole", "paneer", "saag", "makki", "lassi", "paratha", "kadhi"],
+  },
+  {
+    value: "gujarati",
+    label: "Gujarati",
+    keywords: ["dhokla", "thepla", "khichdi", "kadhi", "handvo", "undhiyu", "khakhra"],
+  },
+  {
+    value: "maharashtrian",
+    label: "Maharashtrian",
+    keywords: ["poha", "misal", "thalipeeth", "zunka", "bhakri", "amti", "usal"],
+  },
+  {
+    value: "bengali",
+    label: "Bengali",
+    keywords: ["fish", "macher", "jhol", "posto", "cholar", "luchi", "shukto"],
+  },
+  {
+    value: "continental",
+    label: "Continental",
+    keywords: ["pasta", "salad", "grilled", "soup", "oats", "sandwich", "stir fry", "bowl"],
+  },
+];
+
 export type MealSlot = "Breakfast" | "Lunch" | "Snack" | "Dinner";
 
 export const MEAL_SLOTS: MealSlot[] = ["Breakfast", "Lunch", "Snack", "Dinner"];
