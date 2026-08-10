@@ -49,7 +49,6 @@ export function planSections(plan: MealPlan, nutrition: NutritionPlan) {
     ...(hasFood
       ? [
           { id: "diet" as const, label: "Diet plan", hint: `${plan.days.length} days` },
-          { id: "recipes" as const, label: "Healthy recipes", hint: "methods" },
           { id: "shopping" as const, label: "Shopping list", hint: "the week" },
         ]
       : []),
@@ -64,6 +63,11 @@ export function planSections(plan: MealPlan, nutrition: NutritionPlan) {
       : []),
     ...(plan.notes.length > 0
       ? [{ id: "notes" as const, label: "Worth remembering", hint: `${plan.notes.length}` }]
+      : []),
+    // Recipes last: you decide what to eat and what to buy first, and
+    // only then look up how to cook it.
+    ...(hasFood
+      ? [{ id: "recipes" as const, label: "Healthy recipes", hint: "methods" }]
       : []),
   ];
 }

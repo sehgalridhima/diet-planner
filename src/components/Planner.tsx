@@ -135,10 +135,10 @@ export default function Planner() {
         { id: "form" as const, label: "Your details", hint: "everything" },
         { id: "numbers" as const, label: "Your numbers", hint: "calories" },
         { id: "diet" as const, label: "Diet plan", hint: "7 days" },
-        { id: "recipes" as const, label: "Healthy recipes", hint: "methods" },
         { id: "shopping" as const, label: "Shopping list", hint: "the week" },
         { id: "training" as const, label: "Workout plan", hint: "training" },
         { id: "notes" as const, label: "Worth remembering", hint: "notes" },
+        { id: "recipes" as const, label: "Healthy recipes", hint: "methods" },
       ];
 
   /** What each section actually needs answered. */
