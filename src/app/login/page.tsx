@@ -5,11 +5,16 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
 /*
- * Sign-in is a client component because the OAuth redirect has to be
- * started from the browser — Supabase needs to hand the provider a
- * URL it can come back to.
+ * Sign-in is a magic link: type an email, get a link, click it.
+ *
+ * No password to store, forget or leak, and no OAuth provider to
+ * register — Google sign-in would need a Google Cloud project, a
+ * consent screen and redirect URIs kept in step across two dashboards,
+ * which is a lot of setup to save someone one click.
  */
 export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -23,7 +28,8 @@ export default function LoginPage() {
     process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   );
 
-  async function signIn() {
+  async function sendLink(event: React.FormEvent) {
+    event.preventDefault();
     setError("");
     setLoading(true);
 
@@ -31,20 +37,25 @@ export default function LoginPage() {
       const supabase = createClient();
       const next = new URLSearchParams(window.location.search).get("next") ?? "/today";
 
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.trim(),
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
         },
       });
 
       if (error) {
-        setError("Could not start sign-in. Please try again.");
-        setLoading(false);
+        setError(
+          error.message.toLowerCase().includes("rate")
+            ? "Too many links requested. Wait a minute and try again."
+            : "Could not send the link. Check the address and try again.",
+        );
+      } else {
+        setSent(true);
       }
-      // On success the browser leaves for Google, so nothing to do here.
     } catch {
       setError("Sign-in is not configured yet.");
+    } finally {
       setLoading(false);
     }
   }
@@ -63,38 +74,59 @@ export default function LoginPage() {
         <div className="rounded-2xl border border-warn/40 bg-warn-soft p-5">
           <h2 className="text-sm font-semibold text-warn">Sign-in isn&rsquo;t set up yet</h2>
           <p className="mt-2 text-sm leading-relaxed text-warn">
-            This app has no Supabase project connected, so there is nothing for Google to sign
-            you in to. The planner on the home page works without an account.
+            This app has no Supabase project connected, so there is nowhere to sign in to. The
+            planner on the home page works without an account.
           </p>
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={signIn}
-        disabled={loading || !configured}
-        className="flex items-center justify-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-sm font-medium transition-colors hover:border-accent/40 disabled:opacity-50"
-      >
-        <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
-          <path
-            fill="#4285F4"
-            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1Z"
-          />
-          <path
-            fill="#34A853"
-            d="M12 23c2.97 0 5.46-.98 7.28-2.65l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23Z"
-          />
-          <path
-            fill="#FBBC05"
-            d="M5.84 14.11a6.6 6.6 0 0 1 0-4.22V7.05H2.18a11 11 0 0 0 0 9.9l3.66-2.84Z"
-          />
-          <path
-            fill="#EA4335"
-            d="M12 4.75c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 1.47 14.97.5 12 .5A11 11 0 0 0 2.18 7.05l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53Z"
-          />
-        </svg>
-        {loading ? "Taking you to Google…" : "Continue with Google"}
-      </button>
+      {sent ? (
+        <div className="rounded-2xl border border-accent/30 bg-accent-soft p-5">
+          <h2 className="text-sm font-semibold text-accent">Check your email</h2>
+          <p className="mt-2 text-sm leading-relaxed text-accent">
+            A sign-in link is on its way to <strong>{email}</strong>. It works once and expires
+            in an hour. If it hasn&rsquo;t arrived in a minute, look in spam.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setSent(false);
+              setError("");
+            }}
+            className="mt-4 text-xs text-accent underline underline-offset-4"
+          >
+            Use a different address
+          </button>
+        </div>
+      ) : (
+        <form onSubmit={sendLink} className="flex flex-col gap-3">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium">Email</span>
+            <input
+              type="email"
+              required
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={!configured}
+              placeholder="you@example.com"
+              className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-sm transition-colors focus:border-accent disabled:opacity-50"
+            />
+          </label>
+
+          <button
+            type="submit"
+            disabled={loading || !configured}
+            className="rounded-xl bg-accent px-5 py-3 text-sm font-medium text-accent-contrast transition-opacity hover:opacity-90 disabled:opacity-50"
+          >
+            {loading ? "Sending…" : "Email me a sign-in link"}
+          </button>
+
+          <p className="text-xs leading-relaxed text-muted">
+            No password. We email you a link that signs you in.
+          </p>
+        </form>
+      )}
 
       {error && (
         <p className="rounded-xl border border-warn/40 bg-warn-soft px-4 py-3 text-sm text-warn">

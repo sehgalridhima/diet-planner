@@ -1,28 +1,44 @@
 import { NextResponse } from "next/server";
+import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * Where Google sends the user back to.
+ * Where the magic link lands.
  *
- * Exchanges the one-time code for a session cookie, then forwards
- * them on. A user with no profile yet goes to /profile to fill it in
- * once; everyone else goes where they were headed.
+ * Supabase sends one of two shapes depending on the email template in
+ * the project, and which one you get is not something the app can
+ * decide:
+ *
+ *   ?code=...                     the PKCE flow, exchanged for a session
+ *   ?token_hash=...&type=magiclink   the default template, verified as an OTP
+ *
+ * Handling only one of them produces a sign-in link that lands on an
+ * error page for reasons no user could ever guess, so this handles
+ * both.
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
+  const tokenHash = url.searchParams.get("token_hash");
+  const type = url.searchParams.get("type") as EmailOtpType | null;
   const next = url.searchParams.get("next") ?? "/today";
 
-  if (!code) {
-    return NextResponse.redirect(new URL("/login?error=missing_code", url.origin));
+  const supabase = await createClient();
+  let failed: string | null = null;
+
+  if (code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) failed = error.message;
+  } else if (tokenHash && type) {
+    const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
+    if (error) failed = error.message;
+  } else {
+    failed = "no code or token in the link";
   }
 
-  const supabase = await createClient();
-  const { error } = await supabase.auth.exchangeCodeForSession(code);
-
-  if (error) {
-    console.error("[auth] code exchange failed:", error.message);
-    return NextResponse.redirect(new URL("/login?error=exchange_failed", url.origin));
+  if (failed) {
+    console.error("[auth] sign-in link failed:", failed);
+    return NextResponse.redirect(new URL("/login?error=link", url.origin));
   }
 
   const {
@@ -42,7 +58,7 @@ export async function GET(request: Request) {
   }
 
   // Only ever redirect within this site — an open redirect here would
-  // let someone hand out a link that logs you in and bounces you off
+  // let someone hand out a link that signs you in and bounces you off
   // to a page they control.
   const target = next.startsWith("/") ? next : "/today";
   return NextResponse.redirect(new URL(target, url.origin));
