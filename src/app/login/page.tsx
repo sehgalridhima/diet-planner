@@ -35,12 +35,23 @@ export default function LoginPage() {
 
     try {
       const supabase = createClient();
+      /*
+       * The redirect URL carries no query string on purpose.
+       *
+       * Supabase checks it against the project's allow list, and a URL
+       * with "?next=..." on the end fails that check — at which point
+       * it silently falls back to the site root and hands the session
+       * to a page that is not looking for it. That is what made the
+       * link appear to do nothing. Where to go afterwards is kept here
+       * instead, where nothing can quietly drop it.
+       */
       const next = new URLSearchParams(window.location.search).get("next") ?? "/today";
+      sessionStorage.setItem("post-sign-in", next);
 
       const { error } = await supabase.auth.signInWithOtp({
         email: email.trim(),
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 

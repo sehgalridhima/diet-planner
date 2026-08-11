@@ -45,7 +45,11 @@ export default function AuthCallbackPage() {
       const query = new URLSearchParams(window.location.search);
       const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
 
-      const next = query.get("next") ?? "/today";
+      // Stashed by the login page: a "next" in the URL would have made
+      // the redirect fail the allow-list check.
+      const next =
+        query.get("next") ?? sessionStorage.getItem("post-sign-in") ?? "/today";
+      sessionStorage.removeItem("post-sign-in");
       const accessToken = hash.get("access_token");
       const refreshToken = hash.get("refresh_token");
       const code = query.get("code");
