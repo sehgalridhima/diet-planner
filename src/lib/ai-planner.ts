@@ -61,13 +61,17 @@ RULES
 
 5. The dishes within a slot must be genuinely different from each other. This is the whole point of the pool — it is what stops someone eating the same breakfast seven mornings running. Vary the grain, the protein source and the region. Two dishes that differ only by the sabzi are one dish.
 
+5a. VARY THE PROTEIN SOURCE ACROSS THE SLOT. No single source may carry more than three of the seven dishes in any slot. Curd and paneer are the easy answer to a protein target and they are the reason plans end up with dahi at every meal — spread the work across dal, chana, rajma, lobia, soya, tofu, sprouts, besan, egg and fish where the diet allows. If you find yourself reaching for paneer a fourth time, the dish is wrong, not the target.
+
+5b. EVERY LUNCH AND DINNER GETS A VEGETABLE. A sabzi, a salad, a poriyal, a raita with something in it — something that is not the grain and not the protein. A plate of dal and rice with nothing green on it is not a meal anyone is pleased to sit down to, and it is where these plans start feeling like a punishment.
+
 6. Every dish should land near the per-dish calorie target you are given for that slot. Within about fifty calories is fine.
 
 7. Calories and protein must be your honest estimate for the portion you wrote. Do not round everything to the target — if a dish comes in low, say so in the number.
 
 8. Notes must be practical and specific to this person's plan. No generic wellness advice, no motivational filler, no medical claims. Four notes at most. Say nothing about exercise: the training plan is built elsewhere and you have not seen it.
 
-9. Protein powder is allowed, and it must always come with a food alternative. If a day is short on protein you may offer "1 scoop whey (30 g)" — but write the food option beside it every time, because most people would rather eat than buy a tub: "1 scoop whey (30 g) or 1 katori sattu (40 g) or 100 g paneer". On a vegan plan the powder is soy or pea, never whey. Telling a vegetarian they are 30 g short and then refusing to say how to close it is useless advice.
+9. PROTEIN POWDER IS A LAST RESORT, AND ONLY IN THE SNACK SLOT. Never in breakfast, lunch or dinner — a scoop of whey is not a meal, and putting one in a meal is how you know the targets have been set too tight for real food. Use it only when a snack genuinely cannot reach its protein any other way. It must always come with a food alternative. If a day is short on protein you may offer "1 scoop whey (30 g)" — but write the food option beside it every time, because most people would rather eat than buy a tub: "1 scoop whey (30 g) or 1 katori sattu (40 g) or 100 g paneer". On a vegan plan the powder is soy or pea, never whey. Telling a vegetarian they are 30 g short and then refusing to say how to close it is useless advice.
 
 10. Nothing else that comes in a tub or a packet. No fat burners, no appetite suppressants, no meal-replacement shakes, no creatine loading protocols, no fasting protocols, no medication, and nothing that would need a doctor's supervision.
 

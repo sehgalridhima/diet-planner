@@ -308,6 +308,31 @@ for (const diet of DIETS) {
   );
 }
 
+/* --- 6b. Protein stays inside something you can eat ------------- */
+
+/*
+ * 1.8 g/kg is defensible; 35% of a small calorie target is not
+ * something you can build Indian vegetarian food out of. A real plan
+ * came back with curd in 13 of 28 meals and paneer in 10, because at
+ * that density nothing else closes the gap.
+ */
+console.log("\n=== Protein density");
+for (const [label, weightKg, activity] of [
+  ["small, sedentary", 55, "sedentary"],
+  ["average, sedentary", 70, "sedentary"],
+  ["average, active", 70, "active"],
+  ["larger, moderate", 92, "moderate"],
+] as const) {
+  const n = buildNutritionPlan({ ...sample, weightKg, activity });
+  const pct = Math.round(((n.macros.proteinG * 4) / n.calories) * 100);
+  const perKg = Number((n.macros.proteinG / weightKg).toFixed(2));
+  check(
+    `${label.padEnd(18)} ${n.calories} kcal, ${n.macros.proteinG}g (${pct}% of calories, ${perKg} g/kg)`,
+    pct <= 31 && perKg >= 1.0,
+    pct > 31 ? "too protein-dense to build real food from" : "protein dropped below a useful level",
+  );
+}
+
 /* --- 7. Measured BMR overrides the formula ---------------------- */
 
 console.log("\n=== Measured BMR");

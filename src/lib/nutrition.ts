@@ -202,7 +202,26 @@ export function calculateMacros(
   referenceWeightKg: number = weightKg,
 ): Macros {
   const proteinPerKg = goal === "lose" ? 1.8 : goal === "gain" ? 1.7 : 1.4;
-  const proteinG = Math.round(referenceWeightKg * proteinPerKg);
+  const fromWeight = Math.round(referenceWeightKg * proteinPerKg);
+
+  /*
+   * Cap protein as a share of the day's calories.
+   *
+   * 1.8 g/kg is a defensible target for holding on to muscle in a
+   * deficit, but it says nothing about how many calories you have to
+   * spend. On a small calorie target it lands at 35% of the day, and
+   * at that density an Indian vegetarian plan stops being food: curd
+   * or paneer has to appear in almost every meal, with a scoop of
+   * whey to close the gap. The grams are technically met and the plan
+   * is not one anybody would follow.
+   *
+   * Thirty percent still protects muscle and leaves room for a normal
+   * plate. The floor stops the cap dropping protein somewhere it
+   * would actually do harm.
+   */
+  const capFromCalories = Math.round((calories * 0.3) / 4);
+  const floorFromWeight = Math.round(referenceWeightKg * 1.2);
+  const proteinG = Math.max(floorFromWeight, Math.min(fromWeight, capFromCalories));
 
   const fatFromPercent = (calories * 0.25) / 9;
   const fatFloor = weightKg * 0.7;
