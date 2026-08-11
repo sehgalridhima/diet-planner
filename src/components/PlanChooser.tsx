@@ -70,8 +70,12 @@ export default function PlanChooser({ onChoose }: { onChoose: (id: SectionId) =>
               </span>
             </div>
             <p className="mt-3 text-sm leading-relaxed text-muted">{choice.blurb}</p>
-            <span className="mt-3 text-xs text-accent opacity-0 transition-opacity group-hover:opacity-100">
-              Start &rarr;
+            {/* Always visible: hover states do not exist on a phone, so
+                anything that only appears on hover is invisible to half
+                the people using this. The arrow nudges on hover instead. */}
+            <span className="mt-3 flex items-center gap-1 text-xs font-medium text-accent">
+              Start
+              <span className="transition-transform group-hover:translate-x-0.5">&rarr;</span>
             </span>
           </button>
         ))}
