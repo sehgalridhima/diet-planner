@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ACTIVITY_OPTIONS, type NutritionPlan } from "@/lib/nutrition";
 import { CUISINE_OPTIONS, DIET_OPTIONS, type Cuisine, type DietType, type MealPlan } from "@/lib/plan-types";
 import { EQUIPMENT_OPTIONS } from "@/lib/workout-planner";
@@ -25,6 +25,14 @@ const GOALS = [
 ] as const;
 
 const EQUIPMENT = EQUIPMENT_OPTIONS.map((o) => o.label);
+
+/* Narrated in the order the work actually happens. */
+const STEPS = [
+  "Working out your targets",
+  "Choosing food that fits them",
+  "Building your week",
+  "Almost there",
+];
 
 export default function Planner() {
   const [heightUnit, setHeightUnit] = useState<HeightUnit>("cm");
@@ -64,6 +72,20 @@ export default function Planner() {
    */
   const [chosen, setChosen] = useState<SectionId | null>(null);
 
+  /*
+   * A plan through Claude takes ten to twenty seconds. A button that
+   * only changes its own label for that long reads as a hang, so the
+   * wait gets narrated. The steps are honest about the order the work
+   * actually happens in.
+   */
+  const [step, setStep] = useState(0);
+
+  useEffect(() => {
+    if (!loading) return;
+    const id = setInterval(() => setStep((n) => Math.min(n + 1, STEPS.length - 1)), 4000);
+    return () => clearInterval(id);
+  }, [loading]);
+
   const set = (key: keyof typeof form, value: string) =>
     setForm((f) => ({ ...f, [key]: value }));
 
@@ -77,6 +99,7 @@ export default function Planner() {
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError("");
+    setStep(0);
     setLoading(true);
     setResult(null);
 
@@ -422,6 +445,47 @@ export default function Planner() {
         >
           {loading ? "Building your plan…" : "Build my plan"}
         </button>
+
+        {loading && (
+          <div className="mt-6 rounded-2xl border border-border bg-surface p-5">
+            <ul className="flex flex-col gap-2.5">
+              {STEPS.map((label, i) => {
+                const done = i < step;
+                const now = i === step;
+                return (
+                  <li key={label} className="flex items-center gap-3 text-sm">
+                    <span
+                      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
+                        done
+                          ? "border-accent bg-accent"
+                          : now
+                            ? "animate-pulse border-accent"
+                            : "border-border"
+                      }`}
+                    >
+                      {done && (
+                        <svg viewBox="0 0 12 12" className="h-2.5 w-2.5 text-accent-contrast">
+                          <path
+                            d="M2 6.5l2.5 2.5L10 3.5"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      )}
+                    </span>
+                    <span className={done || now ? "text-foreground" : "text-muted"}>{label}</span>
+                  </li>
+                );
+              })}
+            </ul>
+            <p className="mt-4 border-t border-border pt-3 text-xs text-muted">
+              The calorie maths is instant. Waiting on the food choices.
+            </p>
+          </div>
+        )}
       </form>
 
       </>

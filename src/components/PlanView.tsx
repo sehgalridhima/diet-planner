@@ -118,16 +118,31 @@ export default function PlanView({
 
       <div>
           {section === "numbers" && showNumbers && (
-            <div>
-              <h2 className="text-lg font-semibold tracking-tight">Your numbers</h2>
-              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <Stat label="Daily calories" value={`${nutrition.calories}`} unit="kcal" primary />
-                <Stat label="Protein" value={`${nutrition.macros.proteinG}`} unit="g" />
-                <Stat label="Carbs" value={`${nutrition.macros.carbsG}`} unit="g" />
-                <Stat label="Fat" value={`${nutrition.macros.fatG}`} unit="g" />
+            <div className="print-block">
+              {/*
+                The calorie target is the one number the whole plan
+                rests on, so it is the only one set at display size.
+                Four equal tiles made it compete with its own macros.
+              */}
+              <div className="flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <p className="text-[3.25rem] font-semibold leading-none tracking-tight text-accent">
+                    {nutrition.calories}
+                  </p>
+                  <p className="mt-1.5 text-base text-muted">calories a day</p>
+                </div>
+
+                {nutrition.weeklyChangeKg !== 0 && (
+                  <p className="rounded-full border border-border bg-surface px-3.5 py-1.5 text-sm text-muted">
+                    {nutrition.weeklyChangeKg > 0 ? "+" : ""}
+                    {nutrition.weeklyChangeKg} kg per week
+                  </p>
+                )}
               </div>
 
-              <dl className="mt-4 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+              <MacroBar macros={nutrition.macros} calories={nutrition.calories} />
+
+              <dl className="mt-7 grid gap-x-8 gap-y-3 text-[0.9375rem] sm:grid-cols-2">
                 <Row
                   label={
                     nutrition.bmrSource === "measured"
@@ -146,25 +161,45 @@ export default function PlanView({
                   label="Healthy weight for your height"
                   value={`${nutrition.healthyWeightRange.min}–${nutrition.healthyWeightRange.max} kg`}
                 />
-                {nutrition.weeklyChangeKg !== 0 && (
-                  <Row
-                    label="Expected change"
-                    value={`${nutrition.weeklyChangeKg > 0 ? "+" : ""}${nutrition.weeklyChangeKg} kg per week`}
-                  />
-                )}
               </dl>
             </div>
           )}
 
           {section === "diet" && (
             <div>
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h2 className="text-lg font-semibold tracking-tight">
+              <div className="flex flex-wrap items-baseline justify-between gap-3">
+                <h2 className="text-xl font-semibold tracking-tight">
                   {selectedDay === todayIndex ? "Today's eating" : `${day.day}'s eating`}
                 </h2>
-                <p className="text-xs text-muted">
-                  {day.calories} kcal · {day.proteinG}g protein
-                </p>
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="no-print rounded-lg border border-border px-2.5 py-1 text-xs text-muted transition-colors hover:border-accent/40 hover:text-foreground"
+                >
+                  Print the week
+                </button>
+              </div>
+
+              {/*
+                Against target, not just a total. "1550 kcal" tells you
+                nothing on its own; a bar against 1580 tells you at a
+                glance whether the day lands.
+              */}
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <Meter
+                  label="Calories"
+                  value={day.calories}
+                  target={nutrition.calories}
+                  unit="kcal"
+                  colour="bg-accent"
+                />
+                <Meter
+                  label="Protein"
+                  value={day.proteinG}
+                  target={nutrition.macros.proteinG}
+                  unit="g"
+                  colour="bg-protein"
+                />
               </div>
 
               {/* Seven days at once is a wall, so open on today */}
@@ -189,16 +224,21 @@ export default function PlanView({
 
               <div className="mt-4 flex flex-col gap-3">
                 {day.meals.map((meal) => (
-                  <div key={meal.slot} className="rounded-2xl border border-border bg-surface p-5">
+                  <div
+                    key={meal.slot}
+                    className="print-block rounded-2xl border border-border bg-surface p-5"
+                  >
                     <div className="flex flex-wrap items-baseline justify-between gap-2">
                       <h3 className="font-medium">{meal.slot}</h3>
-                      <p className="font-mono text-xs text-muted">
-                        {meal.calories} kcal · {meal.proteinG}g protein
+                      <p className="text-xs text-muted">
+                        <span className="font-medium text-foreground">{meal.calories}</span> kcal
+                        {" · "}
+                        <span className="font-medium text-protein">{meal.proteinG}g</span> protein
                       </p>
                     </div>
                     <ul className="mt-3 flex flex-col gap-1">
                       {meal.items.map((item, i) => (
-                        <li key={i} className="text-sm text-muted">
+                        <li key={i} className="text-[0.9375rem] leading-relaxed text-muted">
                           {item}
                         </li>
                       ))}
@@ -310,28 +350,102 @@ export default function PlanView({
   );
 }
 
-function Stat({
+
+/**
+ * Protein, carbs and fat as one bar rather than three numbers.
+ *
+ * The split is what people are actually trying to read, and a ratio
+ * is far easier to see than to work out from three figures in
+ * different units.
+ */
+/**
+ * A value against the target it is supposed to hit.
+ *
+ * Over-target is drawn differently rather than by clipping the bar:
+ * a bar pinned at 100% cannot tell you whether you are ten calories
+ * over or three hundred.
+ */
+function Meter({
   label,
   value,
+  target,
   unit,
-  primary,
+  colour,
 }: {
   label: string;
-  value: string;
+  value: number;
+  target: number;
   unit: string;
-  primary?: boolean;
+  colour: string;
 }) {
+  const pct = Math.min(100, Math.round((value / target) * 100));
+  const over = value > target;
+  const gap = value - target;
+
   return (
-    <div
-      className={`rounded-2xl border p-4 ${
-        primary ? "border-accent/30 bg-accent-soft" : "border-border bg-surface"
-      }`}
-    >
-      <p className="text-xs text-muted">{label}</p>
-      <p className={`mt-1 text-2xl font-semibold tracking-tight ${primary ? "text-accent" : ""}`}>
-        {value}
-        <span className="ml-1 text-sm font-normal text-muted">{unit}</span>
+    <div className="rounded-xl border border-border bg-surface p-3.5">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="text-sm text-muted">{label}</span>
+        <span className="text-sm">
+          <span className="font-medium">{value}</span>
+          <span className="text-muted">
+            {" "}/ {target} {unit}
+          </span>
+        </span>
+      </div>
+
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-2">
+        <div className={`h-full ${over ? "bg-warn" : colour}`} style={{ width: `${pct}%` }} />
+      </div>
+
+      <p className="mt-1.5 text-xs text-muted">
+        {Math.abs(gap) <= Math.max(2, target * 0.02)
+          ? "on target"
+          : over
+            ? `${gap} ${unit} over`
+            : `${Math.abs(gap)} ${unit} short`}
       </p>
+    </div>
+  );
+}
+
+function MacroBar({
+  macros,
+  calories,
+}: {
+  macros: { proteinG: number; carbsG: number; fatG: number };
+  calories: number;
+}) {
+  const parts = [
+    { key: "Protein", grams: macros.proteinG, kcal: macros.proteinG * 4, colour: "bg-protein" },
+    { key: "Carbs", grams: macros.carbsG, kcal: macros.carbsG * 4, colour: "bg-carbs" },
+    { key: "Fat", grams: macros.fatG, kcal: macros.fatG * 9, colour: "bg-fat" },
+  ];
+  const total = parts.reduce((sum, p) => sum + p.kcal, 0) || calories;
+
+  return (
+    <div className="mt-7">
+      <div className="flex h-3 overflow-hidden rounded-full">
+        {parts.map((p) => (
+          <div
+            key={p.key}
+            className={p.colour}
+            style={{ width: `${(p.kcal / total) * 100}%` }}
+            title={`${p.key}: ${p.grams}g`}
+          />
+        ))}
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2">
+        {parts.map((p) => (
+          <div key={p.key} className="flex items-baseline gap-2">
+            <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${p.colour}`} aria-hidden />
+            <span className="text-sm text-muted">{p.key}</span>
+            <span className="text-sm font-medium">{p.grams}g</span>
+            <span className="text-xs text-muted">{Math.round((p.kcal / total) * 100)}%</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
