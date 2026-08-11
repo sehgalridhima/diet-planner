@@ -452,9 +452,11 @@ function MacroBar({
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between gap-4 border-b border-border py-2">
+    <div className="flex items-baseline justify-between gap-4 border-b border-border py-2.5">
       <dt className="text-muted">{label}</dt>
-      <dd className="text-right font-medium">{value}</dd>
+      {/* The value must not break across lines — "1450" above "kcal"
+          reads as two numbers. The label wraps instead. */}
+      <dd className="shrink-0 whitespace-nowrap font-medium">{value}</dd>
     </div>
   );
 }
