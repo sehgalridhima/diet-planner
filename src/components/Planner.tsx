@@ -5,6 +5,8 @@ import { ACTIVITY_OPTIONS, type NutritionPlan } from "@/lib/nutrition";
 import { CUISINE_OPTIONS, DIET_OPTIONS, type Cuisine, type DietType, type MealPlan } from "@/lib/plan-types";
 import { EQUIPMENT_OPTIONS } from "@/lib/workout-planner";
 import PlanView, { planSections, type SectionId } from "@/components/PlanView";
+import SectionNav from "@/components/SectionNav";
+import PlanChooser from "@/components/PlanChooser";
 
 type HeightUnit = "cm" | "ft";
 
@@ -53,6 +55,14 @@ export default function Planner() {
    * appeared once you had already worked that out.
    */
   const [section, setSection] = useState<SectionId>("form");
+
+  /*
+   * Null until they have said what they want. The menu does not exist
+   * yet at that point — there is nothing to navigate, and showing one
+   * whose every entry opens the same form was the thing that made the
+   * app feel like it was ignoring the clicks.
+   */
+  const [chosen, setChosen] = useState<SectionId | null>(null);
 
   const set = (key: keyof typeof form, value: string) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -157,51 +167,33 @@ export default function Planner() {
 
   return (
     <div className="flex flex-col gap-6 sm:flex-row sm:gap-8">
-      {/* ---------------- SIDEBAR ---------------- */}
-      <nav
-        aria-label="Sections"
-        className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:w-52 sm:shrink-0 sm:flex-col sm:overflow-visible sm:px-0 sm:pb-0"
-      >
-        <div className="sm:sticky sm:top-6 sm:flex sm:flex-col sm:gap-1">
-          {sections.map((s) => {
-            const active = section === s.id;
-            return (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => setSection(s.id)}
-                aria-current={active ? "page" : undefined}
-                className={`flex shrink-0 items-baseline justify-between gap-3 whitespace-nowrap rounded-xl border px-3.5 py-2.5 text-left text-sm transition-colors sm:w-full ${
-                  active
-                    ? "border-accent/40 bg-accent-soft text-accent"
-                    : "border-transparent text-muted hover:bg-surface hover:text-foreground"
-                }`}
-              >
-                <span className={active ? "font-medium" : ""}>{s.label}</span>
-                <span className="hidden font-mono text-[0.65rem] opacity-60 sm:inline">
-                  {s.hint}
-                </span>
-              </button>
-            );
-          })}
-
-          {!result && (
-            <p className="mt-3 hidden px-3.5 text-xs leading-relaxed text-muted/70 sm:block">
-              Your plan, recipes, shopping list and training appear here once you build it.
-            </p>
-          )}
-        </div>
-      </nav>
+      {result && <SectionNav items={sections} section={section} onSelect={setSection} />}
 
       {/* ---------------- PANEL ---------------- */}
       <div className="min-w-0 flex-1">
-      {(section === "form" || !result) && (
+      {!result && !chosen && (
+        <PlanChooser
+          onChoose={(id) => {
+            setChosen(id);
+            setSection(id);
+          }}
+        />
+      )}
+
+      {((result && section === "form") || (!result && chosen)) && (
       <>
-      {section !== "form" && (
+      {!result && (
         <div className="mb-5">
-          <h2 className="text-lg font-semibold tracking-tight">{asking}</h2>
+          <button
+            type="button"
+            onClick={() => setChosen(null)}
+            className="text-xs text-muted underline underline-offset-4 hover:text-foreground"
+          >
+            &larr; Change what you want
+          </button>
+          <h2 className="mt-2 text-lg font-semibold tracking-tight">{asking}</h2>
           <p className="mt-1 text-sm text-muted">
-            Answer these and it appears here. Only what this section needs is asked.
+            Only the questions this needs, nothing else.
           </p>
         </div>
       )}
