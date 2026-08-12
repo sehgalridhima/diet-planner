@@ -39,6 +39,56 @@ const DAIRY: DietType[] = ["veg", "egg", "nonveg"];
 const FOODS: Record<MealSlot, FoodOption[]> = {
   Breakfast: [
     {
+      items: ["1 bowl sprouted moong salad (150 g cooked sprouts)", "2 besan cheela (50 g besan, 1 tsp oil)"],
+      calories: 385,
+      proteinG: 26,
+      diets: ALL_DIETS,
+      scale: { unit: "besan cheela", calories: 110, proteinG: 6, max: 4 },
+    },
+    {
+      items: ["1 bowl besan-tofu chilla (60 g besan, 100 g tofu, 1 tsp oil)", "1 glass soy milk (150 ml)"],
+      calories: 430,
+      proteinG: 30,
+      diets: ALL_DIETS,
+      scale: { unit: "tbsp besan", calories: 40, proteinG: 2, max: 4 },
+    },
+    {
+      items: ["4 egg white + 2 whole egg omelette (1 tsp oil)", "2 multigrain toast (60 g)"],
+      calories: 410,
+      proteinG: 34,
+      diets: ["egg", "nonveg"],
+      scale: { unit: "egg white", calories: 18, proteinG: 4, max: 6 },
+    },
+    /* ---------------------------------------------------------------
+       Protein-dense and vegan-safe, which is the combination the table
+       was short of. A measured week off this table came back 20% under
+       target on vegetarian and 36% under on vegan: the high-protein
+       options ran out after two days and the rotation dropped to
+       14–20 g dishes for the rest of the week. Because ALL_DIETS
+       reaches every diet, these lift all four at once.
+       --------------------------------------------------------------- */
+    {
+      items: ["1 bowl tofu bhurji (200 g tofu, 1 tsp oil)", "2 phulka (50 g atta)"],
+      calories: 365,
+      proteinG: 30,
+      diets: ALL_DIETS,
+      scale: { unit: "phulka", calories: 85, proteinG: 3, max: 4 },
+    },
+    {
+      items: ["1 bowl soya granule upma (40 g rava, 30 g soya granules, 1 tsp oil)", "1 glass soy milk (200 ml)"],
+      calories: 390,
+      proteinG: 27,
+      diets: ALL_DIETS,
+      scale: { unit: "tbsp soya granules", calories: 35, proteinG: 5, max: 4 },
+    },
+    {
+      items: ["2 moong dal chilla (70 g raw moong dal, 1 tsp oil)", "1 glass sattu drink (30 g sattu)"],
+      calories: 400,
+      proteinG: 23,
+      diets: ALL_DIETS,
+      scale: { unit: "tbsp sattu", calories: 40, proteinG: 2, max: 5 },
+    },
+    {
       items: ["2 besan chilla (60 g besan)", "1 katori curd (150 g)", "1 tsp green chutney"],
       calories: 340,
       proteinG: 18,
@@ -160,6 +210,55 @@ const FOODS: Record<MealSlot, FoodOption[]> = {
   ],
 
   Lunch: [
+    {
+      items: ["1 katori chana masala (70 g raw kabuli chana, 1 tsp oil)", "2 roti (50 g atta)", "1 katori soya-veg salad (25 g raw soya, 100 g veg)"],
+      calories: 520,
+      proteinG: 32,
+      diets: ALL_DIETS,
+      scale: { unit: "roti", calories: 85, proteinG: 3, max: 4 },
+    },
+    {
+      items: ["1 katori soya chunk curry (40 g raw soya, 1 tsp oil)", "1 katori rice (50 g raw)", "1 katori dal (30 g raw)", "1 katori sabzi (150 g)"],
+      calories: 505,
+      proteinG: 33,
+      diets: ALL_DIETS,
+      scale: { unit: "tbsp soya chunks", calories: 35, proteinG: 5, max: 4 },
+    },
+    {
+      items: ["1 katori lobia masala (70 g raw lobia, 1 tsp oil)", "2 roti (50 g atta)", "1 bowl tofu bhurji (100 g tofu)"],
+      calories: 525,
+      proteinG: 34,
+      diets: ALL_DIETS,
+      scale: { unit: "roti", calories: 85, proteinG: 3, max: 4 },
+    },
+    {
+      items: ["120 g grilled chicken breast", "1 katori rice (60 g raw)", "1 katori sabzi (150 g)", "1 tsp oil"],
+      calories: 505,
+      proteinG: 44,
+      diets: ["nonveg"],
+      scale: { unit: "g chicken breast", calories: 1.65, proteinG: 0.31, max: 60 },
+    },
+    {
+      items: ["3 egg curry (3 whole eggs, 1 tsp oil)", "1 katori dal (30 g raw)", "2 phulka (50 g atta)", "1 katori sabzi (150 g)"],
+      calories: 530,
+      proteinG: 33,
+      diets: ["egg", "nonveg"],
+      scale: { unit: "phulka", calories: 85, proteinG: 3, max: 4 },
+    },
+    {
+      items: ["1 bowl soya chunk pulao (60 g raw rice, 50 g raw soya chunks, 150 g mixed veg, 1 tsp oil)"],
+      calories: 490,
+      proteinG: 33,
+      diets: ALL_DIETS,
+      scale: { unit: "tbsp soya chunks", calories: 35, proteinG: 5, max: 4 },
+    },
+    {
+      items: ["1 katori rajma (80 g raw)", "2 roti (50 g atta)", "1 katori tofu-cucumber salad (80 g tofu)", "1 tsp oil"],
+      calories: 535,
+      proteinG: 34,
+      diets: ALL_DIETS,
+      scale: { unit: "roti", calories: 85, proteinG: 3, max: 4 },
+    },
     {
       items: ["2 roti (70 g atta)", "1 katori dal (250 g)", "1 katori sabzi (150 g)", "salad"],
       calories: 450,
@@ -290,6 +389,41 @@ const FOODS: Record<MealSlot, FoodOption[]> = {
 
   Snack: [
     {
+      items: ["1 katori roasted chana-peanut mix (30 g chana, 10 g peanuts)"],
+      calories: 165,
+      proteinG: 11,
+      diets: ALL_DIETS,
+      scale: { unit: "tbsp roasted chana", calories: 40, proteinG: 2, max: 3 },
+    },
+    {
+      items: ["1 katori soya chunk chaat (30 g raw soya, onion, lemon)"],
+      calories: 105,
+      proteinG: 15,
+      diets: ALL_DIETS,
+      scale: { unit: "tbsp soya chunks", calories: 35, proteinG: 5, max: 3 },
+    },
+    {
+      items: ["1 glass sattu drink (40 g sattu, lemon, salt)"],
+      calories: 160,
+      proteinG: 8,
+      diets: ALL_DIETS,
+      scale: { unit: "tbsp sattu", calories: 40, proteinG: 2, max: 4 },
+    },
+    {
+      items: ["1 bowl tofu tikka (150 g tofu, tandoori masala)"],
+      calories: 115,
+      proteinG: 18,
+      diets: ALL_DIETS,
+      scale: { unit: "g tofu", calories: 0.8, proteinG: 0.12, max: 50 },
+    },
+    {
+      items: ["1 katori sprout chaat (150 g cooked sprouts, onion, lemon)", "10 g roasted peanuts"],
+      calories: 160,
+      proteinG: 11,
+      diets: ALL_DIETS,
+      scale: { unit: "tbsp roasted peanuts", calories: 55, proteinG: 3, max: 3 },
+    },
+    {
       items: ["1 apple (180 g)", "10 almonds (12 g)"],
       calories: 170,
       proteinG: 4,
@@ -397,6 +531,48 @@ const FOODS: Record<MealSlot, FoodOption[]> = {
   ],
 
   Dinner: [
+    {
+      items: ["1 katori rajma (70 g raw, 1 tsp oil)", "2 phulka (50 g atta)", "1 katori tofu salad (100 g tofu)"],
+      calories: 465,
+      proteinG: 31,
+      diets: ALL_DIETS,
+      scale: { unit: "phulka", calories: 85, proteinG: 3, max: 4 },
+    },
+    {
+      items: ["1 bowl tofu-palak (200 g tofu, 150 g palak, 1 tsp oil)", "2 phulka (50 g atta)"],
+      calories: 400,
+      proteinG: 33,
+      diets: ALL_DIETS,
+      scale: { unit: "phulka", calories: 85, proteinG: 3, max: 4 },
+    },
+    {
+      items: ["1 katori soya-matar keema (40 g raw soya, 1 tsp oil)", "2 phulka (50 g atta)", "1 katori salad (150 g)"],
+      calories: 390,
+      proteinG: 29,
+      diets: ALL_DIETS,
+      scale: { unit: "phulka", calories: 85, proteinG: 3, max: 4 },
+    },
+    {
+      items: ["150 g fish curry (rohu, 1 tsp oil)", "2 phulka (50 g atta)", "1 katori sabzi (150 g)"],
+      calories: 420,
+      proteinG: 35,
+      diets: ["nonveg"],
+      scale: { unit: "phulka", calories: 85, proteinG: 3, max: 4 },
+    },
+    {
+      items: ["1 katori soya chunk curry (45 g raw soya, 1 tsp oil)", "2 phulka (50 g atta)", "1 katori lauki sabzi (150 g)"],
+      calories: 415,
+      proteinG: 30,
+      diets: ALL_DIETS,
+      scale: { unit: "phulka", calories: 85, proteinG: 3, max: 4 },
+    },
+    {
+      items: ["1 katori chana masala (60 g raw kabuli chana, 1 tsp oil)", "2 phulka (50 g atta)", "1 katori tofu salad (80 g tofu)"],
+      calories: 490,
+      proteinG: 27,
+      diets: ALL_DIETS,
+      scale: { unit: "phulka", calories: 85, proteinG: 3, max: 4 },
+    },
     {
       items: ["2 roti (70 g atta)", "1 katori mixed sabzi (150 g)", "1 katori dal (250 g)"],
       calories: 420,

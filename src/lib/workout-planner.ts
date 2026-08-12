@@ -163,8 +163,23 @@ export const EXERCISES: Exercise[] = [
   { name: "Russian twists", pattern: "core", role: "core", needs: "none" },
   { name: "Mountain climbers", pattern: "core", role: "core", needs: "none" },
   { name: "Brisk walk", pattern: "cardio", role: "cardio", needs: "none", lowImpact: true },
-  { name: "Cycling", pattern: "cardio", role: "cardio", needs: "none", lowImpact: true },
-  { name: "Swimming", pattern: "cardio", role: "cardio", needs: "none", lowImpact: true },
+  /*
+   * Cycling sits behind the gym tier because a stationary bike is
+   * standard gym kit and a bicycle is not something we know anybody
+   * owns. Swimming is gone from the table entirely: nothing on the
+   * form tells us whether someone can reach a pool, and there is no
+   * honest tier to file it under.
+   *
+   * Both were tagged "none" — the same as a brisk walk — so "bodyweight
+   * only" was handing people a pool and a bicycle, directly under a
+   * note promising that nothing in the plan needed kit they did not
+   * have. Cardio was never checked against equipment the way the
+   * strength lifts were.
+   *
+   * They come back as suggested swaps in the notes, where having
+   * access is the reader's call rather than ours.
+   */
+  { name: "Cycling", pattern: "cardio", role: "cardio", needs: "gym", lowImpact: true },
   { name: "Jog", pattern: "cardio", role: "cardio", needs: "none" },
   { name: "Stair climbing", pattern: "cardio", role: "cardio", needs: "none" },
   { name: "Skipping", pattern: "cardio", role: "cardio", needs: "none" },
@@ -407,10 +422,22 @@ const SPLITS: Record<Goal, Record<number, string[]>> = {
   },
 };
 
-/** Which days of the week get trained, so rest lands sensibly rather than all at the end. */
+/**
+ * Which days of the week get trained.
+ *
+ * Spread so that rest is distributed rather than piled up at the end.
+ * The four-day week used to be Mon/Tue/Thu/Fri, which finished on
+ * Friday and left Saturday and Sunday both empty — the training week
+ * was over before the weekend it was supposed to fit around, and two
+ * consecutive rest days is where a habit goes to die. Saturday is the
+ * day most people actually have time.
+ *
+ * Three days cannot avoid consecutive rest — four rest days into seven
+ * will not spread — so Mon/Wed/Fri stays as the standard shape.
+ */
 const TRAINING_DAYS: Record<number, number[]> = {
   3: [0, 2, 4],
-  4: [0, 1, 3, 4],
+  4: [0, 1, 3, 5],
   5: [0, 1, 2, 4, 5],
   6: [0, 1, 2, 3, 4, 5],
 };
@@ -729,6 +756,11 @@ export function buildWorkout(input: WorkoutInput): { days: WorkoutDay[]; notes: 
     }, before any walking you do on rest days.`,
     "Progressive overload is the whole point: work at the bottom of the rep range, add reps until you reach the top of it, then add weight and start again. Keep 1–2 reps in reserve on most sets.",
     "Every 6–8 weeks take a lighter week — cut your sets by about a third and keep the same movements. You will come back stronger than if you had pushed through.",
+    // Offered rather than prescribed. The form never asks whether you
+    // own a bicycle or can reach a pool, so the plan cannot put either
+    // in a session — but swapping the finisher for one is entirely
+    // reasonable, and the person reading this knows what they can get to.
+    "Swap any cardio finisher for cycling or swimming if you have access — same minutes, easier on the joints. The plan sticks to walking and jogging because it has no way of knowing what you can reach.",
   ];
 
   if (lowImpactOnly) {

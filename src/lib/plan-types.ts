@@ -166,3 +166,27 @@ export const MEAL_SPLIT: Record<MealSlot, number> = {
   Snack: 0.1,
   Dinner: 0.3,
 };
+
+/**
+ * How the day's PROTEIN is split across meals — deliberately not the
+ * same shape as the calories.
+ *
+ * Protein used to ride on MEAL_SPLIT, which quietly asked the snack
+ * for a tenth of the day's protein and lunch for over a third. On a
+ * 110 g target that is a 39 g lunch, and no dish in the table reaches
+ * it — every diet was short on lunch and dinner while the snack slot
+ * sat comfortably over its number with nothing to do.
+ *
+ * A snack is where protein is cheapest in calories: curd, tofu tikka,
+ * sprouts, roasted chana, a glass of milk. It is also how people
+ * actually close the gap. Giving the snack a real share and easing
+ * lunch and dinner makes the same day's protein reachable from food
+ * that already exists, rather than from dishes invented to satisfy an
+ * arithmetic split.
+ */
+export const PROTEIN_SPLIT: Record<MealSlot, number> = {
+  Breakfast: 0.25,
+  Lunch: 0.3,
+  Snack: 0.18,
+  Dinner: 0.27,
+};

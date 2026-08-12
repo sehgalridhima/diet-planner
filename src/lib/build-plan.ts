@@ -143,7 +143,10 @@ export async function buildPlan(
   const cuisineKeywords = CUISINE_OPTIONS.find((c) => c.value === cuisine)?.keywords ?? [];
   const preference = [craving, ...cuisineKeywords].filter(Boolean).join(" ");
 
-  const nutrition = buildNutritionPlan(input);
+  // Diet goes in because the protein target depends on it: a plant-based
+  // week cannot reach the density a meat-eating one can, and promising a
+  // number the food cannot deliver is worse than promising a lower one.
+  const nutrition = buildNutritionPlan(input, diet);
   const key = cacheKey(input, diet, equipment, craving, cuisine, want);
 
   const cached = readCache(key);

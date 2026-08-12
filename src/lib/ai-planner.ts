@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { CUISINE_OPTIONS, MEAL_SLOTS, type Cuisine, type DietType, type Dish, type MealPlan, type MealPool } from "@/lib/plan-types";
+import { CUISINE_OPTIONS, MEAL_SLOTS, MEAL_SPLIT, PROTEIN_SPLIT, type Cuisine, type DietType, type Dish, type MealPlan, type MealPool } from "@/lib/plan-types";
 import type { Goal, NutritionPlan, UserInput } from "@/lib/nutrition";
 import { assembleWeek } from "@/lib/week";
 import { buildPool } from "@/lib/builtin-planner";
@@ -55,7 +55,7 @@ RULES
 
 2. Portions the way people speak, WITH the weight in brackets after them. "2 roti (70 g atta)", "1 katori dal (250 g)", "1 glass milk (250 ml)", "1 bowl poha (60 g raw)". The spoken portion is what someone serves; the weight is what someone weighing their food needs. Give both, every time, and say "raw" or "cooked" wherever it changes the number — 60 g raw poha and 60 g cooked poha are not the same meal.
 
-3. Hit the protein target. This is the number that matters most and the one Indian diets most often miss. On vegetarian and vegan plans you will have to work for it: dal, chana, rajma, paneer, tofu, soya chunks, curd, peanuts, sprouts. Do not quietly fall short.
+3. THE PROTEIN FIGURE IS A FLOOR, NOT A TARGET. Every dish must meet or beat the protein number given for its slot. Landing just under is a failure, not a near miss — seven dishes each a few grams light is a week that misses every single day. Aim a little over on every dish and the week works out. This is the number Indian diets most often miss and the one that matters most, so on vegetarian and vegan plans you will have to work for it: dal, chana, rajma, lobia, paneer, tofu, soya chunks, curd, peanuts, sprouts, besan. If a dish genuinely cannot reach its figure at the calories allowed, change the dish rather than writing a lower number.
 
 4. Respect the diet type absolutely. Vegetarian means no egg and no meat. Eggetarian allows egg but no meat. Vegan excludes dairy entirely, which rules out curd, milk, paneer and ghee. A single violation makes the whole plan useless to the person reading it.
 
@@ -210,12 +210,25 @@ export async function buildAiPlan(
   const cuisineLabel =
     cuisine === "any" ? "" : (CUISINE_OPTIONS.find((c) => c.value === cuisine)?.label ?? "");
 
-  // Per-dish targets, so Claude aims at a meal rather than a day.
+  /*
+   * Per-dish targets, so Claude aims at a meal rather than a day.
+   *
+   * Calories are a target to sit near; protein is a floor to clear.
+   * Given one number for both, the model treats protein the way it
+   * treats calories — as something to land close to — and close to
+   * from underneath. Measured across a real week it came in 10–16%
+   * light on every dish, which compounds into a day that misses by
+   * the same margin. Lowering the day's target did not help: the food
+   * simply followed it down, and the week delivered less protein than
+   * before while now matching a smaller promise.
+   *
+   * So the words differ per number, and the two are asked for
+   * differently in rule 3 as well.
+   */
   const perSlot = MEAL_SLOTS.map((slot) => {
-    const share = slot === "Breakfast" ? 0.25 : slot === "Lunch" ? 0.35 : slot === "Snack" ? 0.1 : 0.3;
-    return `- ${slot}: about ${Math.round(nutrition.calories * share)} kcal and ${Math.round(
-      nutrition.macros.proteinG * share,
-    )} g protein per dish`;
+    return `- ${slot}: about ${Math.round(nutrition.calories * MEAL_SPLIT[slot])} kcal, and AT LEAST ${Math.round(
+      nutrition.macros.proteinG * PROTEIN_SPLIT[slot],
+    )} g protein — the protein figure is a minimum, not something to land near`;
   }).join("\n");
 
   const response = await client.messages.create({

@@ -2,6 +2,7 @@ import {
   DAYS,
   MEAL_SLOTS,
   MEAL_SPLIT,
+  PROTEIN_SPLIT,
   type DayPlan,
   type Dish,
   type Meal,
@@ -60,8 +61,20 @@ function scoreDish(dish: Dish, targetCalories: number, targetProtein: number) {
   const caloriePenalty = (Math.abs(calorieGap) / targetCalories) * calorieWeight;
   const proteinPenalty = (Math.max(0, targetProtein - scaled.proteinG) / targetProtein) * 2;
 
-  // Some extra protein is welcome, but chasing it past about a fifth over
-  // target only buys calories — so beyond that, overshoot starts to cost.
+  /*
+   * Some extra protein is welcome, but overshoot is not free: calories
+   * are fixed, so protein taken past the target comes out of the carbs
+   * and fat on the same plate. A week that landed 92–123 g against a
+   * 99 g target put one day at 35% of its calories from protein — the
+   * exact density the target's cap exists to keep off the plate, and
+   * the kind of day people describe as not really a meal.
+   *
+   * A fifth over is the allowance. Tightening it to a tenth was tried
+   * and made things worse, not better: with a thin pool the scorer
+   * simply reached further down the list, and the worst day went from
+   * 7% under target to 11% under. The fix for an uneven week is more
+   * dishes to choose from, not a stricter rule applied to too few.
+   */
   const proteinExcess = Math.max(0, scaled.proteinG - targetProtein * 1.2) / targetProtein;
 
   return { scaled, score: caloriePenalty + proteinPenalty + proteinExcess * 0.6 };
@@ -123,12 +136,13 @@ export function assembleWeek(
     rotations[slot] = rotationFor(
       pool[slot] ?? [],
       Math.round(dailyCalories * MEAL_SPLIT[slot]),
-      Math.round(dailyProteinG * MEAL_SPLIT[slot]),
+      // Protein has its own split — see PROTEIN_SPLIT.
+      Math.round(dailyProteinG * PROTEIN_SPLIT[slot]),
       wanted,
     );
   }
 
-  return DAYS.map((day, dayIndex) => {
+  const days = DAYS.map((day, dayIndex) => {
     const meals: Meal[] = [];
 
     MEAL_SLOTS.forEach((slot, slotIndex) => {
@@ -175,6 +189,70 @@ export function assembleWeek(
       proteinG: meals.reduce((sum, m) => sum + m.proteinG, 0),
     };
   });
+
+  return levelProtein(days, dailyProteinG);
+}
+
+/**
+ * Evens out protein across the week by trading whole meals between days.
+ *
+ * Each slot is picked against its own share with no view of the day it
+ * lands in, so a day can collect the highest-protein dish in all four
+ * slots at once. Counter-rotation spreads dishes across the week but
+ * cannot see a day's total either. One vegan week came out at 94–127 g
+ * against a 99 g target, and the 127 g day drew 36% of its calories
+ * from protein — the density the target's own cap exists to prevent.
+ *
+ * The correction is an EXCHANGE, not a substitution. The rotation holds
+ * exactly seven dishes for seven days, so replacing one day's lunch with
+ * a different dish necessarily uses that dish twice and costs the week a
+ * distinct meal — which is what the first attempt at this did, quietly
+ * dropping variety from 7 dishes to 6. Swapping the same slot between a
+ * heavy day and a light one moves protein without touching which dishes
+ * appear at all.
+ *
+ * Bounded and greedy: each pass makes the single trade that most reduces
+ * the gap, and it stops as soon as no trade helps.
+ */
+function levelProtein(days: DayPlan[], target: number): DayPlan[] {
+  const total = (day: DayPlan) => day.meals.reduce((sum, m) => sum + m.proteinG, 0);
+  const cost = (list: DayPlan[]) =>
+    list.reduce((worst, day) => Math.max(worst, Math.abs(total(day) - target)), 0);
+
+  for (let pass = 0; pass < MEAL_SLOTS.length * DAYS.length; pass++) {
+    let best: { a: number; b: number; slot: number; cost: number } | null = null;
+
+    for (let a = 0; a < days.length; a++) {
+      for (let b = a + 1; b < days.length; b++) {
+        for (let slot = 0; slot < days[a].meals.length; slot++) {
+          if (days[b].meals[slot]?.slot !== days[a].meals[slot]?.slot) continue;
+
+          const trial = days.map((day) => ({ ...day, meals: [...day.meals] }));
+          const held = trial[a].meals[slot];
+          trial[a].meals[slot] = trial[b].meals[slot];
+          trial[b].meals[slot] = held;
+
+          const after = cost(trial);
+          if (after < (best?.cost ?? cost(days))) {
+            best = { a, b, slot, cost: after };
+          }
+        }
+      }
+    }
+
+    if (!best) break;
+
+    const held = days[best.a].meals[best.slot];
+    days[best.a].meals[best.slot] = days[best.b].meals[best.slot];
+    days[best.b].meals[best.slot] = held;
+  }
+
+  // Totals were computed before any trade, so they have to be redone.
+  return days.map((day) => ({
+    ...day,
+    calories: day.meals.reduce((sum, m) => sum + m.calories, 0),
+    proteinG: day.meals.reduce((sum, m) => sum + m.proteinG, 0),
+  }));
 }
 
 /** How many distinct dishes the week actually used, per slot. */

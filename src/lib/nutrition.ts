@@ -9,6 +9,8 @@
    this file produces.
    =============================================================== */
 
+import type { DietType } from "@/lib/plan-types";
+
 export type Sex = "female" | "male";
 
 export type ActivityLevel =
@@ -200,6 +202,11 @@ export function calculateMacros(
    * diet at a deficit, close to unreachable.
    */
   referenceWeightKg: number = weightKg,
+  /**
+   * What they eat. Only the density cap below depends on it — the
+   * gram-per-kilo figure is the same body either way.
+   */
+  diet: DietType = "nonveg",
 ): Macros {
   const proteinPerKg = goal === "lose" ? 1.8 : goal === "gain" ? 1.7 : 1.4;
   const fromWeight = Math.round(referenceWeightKg * proteinPerKg);
@@ -215,11 +222,23 @@ export function calculateMacros(
    * whey to close the gap. The grams are technically met and the plan
    * is not one anybody would follow.
    *
-   * Thirty percent still protects muscle and leaves room for a normal
-   * plate. The floor stops the cap dropping protein somewhere it
-   * would actually do harm.
+   * The ceiling is lower without meat, and this is the whole point of
+   * the cap. Thirty percent is reachable on eggs and chicken. On dal,
+   * roti and sabzi it is not: a measured week came back at 90–111 g
+   * against a 116 g target, missing every single day by up to 22%,
+   * and the food itself was fine — the target was the thing that was
+   * wrong. Twenty-five percent is what this cuisine actually delivers
+   * at a deficit, so it is what we promise.
+   *
+   * This binds only where it should. On a surplus the calorie budget
+   * is large and the g/kg figure comes in well under the cap, so a
+   * vegetarian building muscle is unaffected.
+   *
+   * The floor stops the cap dropping protein somewhere it would
+   * actually do harm.
    */
-  const capFromCalories = Math.round((calories * 0.3) / 4);
+  const maxShare = diet === "veg" || diet === "vegan" ? 0.25 : 0.3;
+  const capFromCalories = Math.round((calories * maxShare) / 4);
   const floorFromWeight = Math.round(referenceWeightKg * 1.2);
   const proteinG = Math.max(floorFromWeight, Math.min(fromWeight, capFromCalories));
 
@@ -237,7 +256,7 @@ export function calculateMacros(
  * Builds the full set of targets, including every safety check.
  * This is the only function the rest of the app should need.
  */
-export function buildNutritionPlan(input: UserInput): NutritionPlan {
+export function buildNutritionPlan(input: UserInput, diet: DietType = "nonveg"): NutritionPlan {
   const bmr = Math.round(effectiveBMR(input));
   const estimatedBmr = Math.round(calculateBMR(input));
   const bmrSource: BmrSource = input.measuredBmr ? "measured" : "estimated";
@@ -345,7 +364,7 @@ export function buildNutritionPlan(input: UserInput): NutritionPlan {
     estimatedBmr,
     tdee,
     calories,
-    macros: calculateMacros(calories, input.weightKg, input.goal, referenceWeightKg),
+    macros: calculateMacros(calories, input.weightKg, input.goal, referenceWeightKg, diet),
     bmi: Number(bmi.toFixed(1)),
     bmiCategory: category,
     healthyWeightRange: healthyWeightRange(input.heightCm),

@@ -271,7 +271,7 @@ const sample: UserInput = {
 };
 
 for (const diet of DIETS) {
-  const nutrition = buildNutritionPlan(sample);
+  const nutrition = buildNutritionPlan(sample, diet);
   const days = assembleWeek(buildPool(diet), nutrition.calories, nutrition.macros.proteinG);
 
   const distinct = MEAL_SLOTS.map((slot) => {
@@ -305,6 +305,29 @@ for (const diet of DIETS) {
     `${diet.padEnd(7)} protein steady across the week (spread ${spread}g, days: ${protein.join(", ")})`,
     spread <= 30,
     "one day is much lower in protein than another",
+  );
+
+  /*
+   * And it must actually REACH the target, which nothing here checked.
+   *
+   * The two assertions above compare the days to each other and to the
+   * shape of the target — neither asks whether a day gets there. A real
+   * vegetarian week came back at 90–111g against a 116g target, missing
+   * every single day by up to 22%, and both existing checks passed it
+   * without complaint: the days were consistent with each other and the
+   * target's density was sane. The one number the whole app promises was
+   * the one number nothing verified.
+   *
+   * Ten percent under, because a day assembled from whole portions
+   * cannot land exactly and should not pretend to.
+   */
+  const target = nutrition.macros.proteinG;
+  const worstProteinDay = Math.min(...protein);
+  const shortfall = Math.round(((target - worstProteinDay) / target) * 100);
+  check(
+    `${diet.padEnd(7)} every day reaches its protein target (${target}g target, worst day ${worstProteinDay}g, ${shortfall}% under)`,
+    worstProteinDay >= target * 0.9,
+    "the plan promises a protein target the food never delivers",
   );
 }
 
