@@ -14,7 +14,13 @@ There are two halves, deliberately separated.
 
 **The food is chosen, not calculated.** Claude receives the finished targets and picks meals that fit them. It cannot change the numbers; it only answers "what should this person eat to hit them". That lives in `src/lib/ai-planner.ts`.
 
-If there is no API key, or the call fails, `src/lib/builtin-planner.ts` assembles a plan from a small food table instead. It is free, needs no account, and the app never shows a dead end.
+Claude returns a *pool* of seven options per meal slot, not a finished week. `src/lib/week.ts` decides which dish lands on which day, scales portions toward the calorie target, and has days trade meals with each other until every one of the seven lands on its protein target — rather than the week's average being right while no individual day is.
+
+The training plan never goes near the model at all. `src/lib/workout-planner.ts` builds it from a table of exercises tagged by equipment and joint impact, so that path costs nothing.
+
+**Zenith** (`src/lib/coach.ts`) is a coach you can ask about the plan on screen. It is handed your actual week, so it answers things a general chatbot cannot — swap Tuesday's lunch, why your target is that number, what to eat instead of paneer. It runs on a cheaper model than the planner, and is under the same rule as everything else here: it reads the calculated numbers and explains them, and is forbidden from working one out.
+
+If there is no API key, or the call fails, `src/lib/builtin-planner.ts` assembles a plan from a food table instead. It is free, needs no account, and the app never shows a dead end.
 
 ## Running it
 
@@ -49,6 +55,8 @@ Four things, all in code rather than left to discipline:
 
 The one guard that is not in this repo, and matters most: **set a spend limit in the Anthropic console.** Rate limiting is best-effort — on serverless, each instance keeps its own counter.
 
+Zenith is metered separately: five questions per IP per hour, a small model, short answers, and trimmed history. Measured rather than estimated — about ₹0.53 a question with a plan attached and ₹0.17 without. `scripts/measure-coach.mts` prints the real figure on demand; it spends credit, so it is not part of the checks.
+
 Every AI call logs its token usage and an approximate rupee cost to the server console, so the bill is never a surprise.
 
 ## Checking the numbers
@@ -59,8 +67,15 @@ npm run check:nutrition
 
 Prints BMR, TDEE, targets, macros and warnings for a set of test profiles. Worth re-running after any change to `nutrition.ts` — it is the file where a mistake would matter most.
 
+```bash
+npm run check:plan
+```
+
+105 assertions over the food table, the exercise table, the week assembly, the shopping list and the recipes. They exist because each one is a bug that actually shipped: a diet quietly losing options, dairy tagged vegan, an exercise prescribed to someone with no equipment for it, an ingredient dropped from the shopping list, and a week that promised a protein target its food never delivered.
+
 ## What it does not do
 
 - It is not medical advice, and says so on every result.
 - It refuses to recommend below 1200 kcal for women or 1500 for men, caps weight loss at roughly 0.75 kg a week, and warns rather than complies when someone underweight asks to lose more.
-- It plans one day, not seven. Eating the same day repeatedly is fine nutritionally and boring in practice; varied weekly plans are the obvious next step.
+- The shopping list counts portions, not recipes. It cannot decompose "palak paneer" into spinach and onion, and the page says so — a list that quietly under-reports is worse than no list.
+- Zenith is not a doctor and will not pretend otherwise. Anything involving a medical condition, medication or pregnancy gets pointed at a real one.
