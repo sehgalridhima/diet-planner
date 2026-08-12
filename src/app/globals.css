@@ -220,3 +220,33 @@ input[type="number"]::-webkit-inner-spin-button {
     content: "";
   }
 }
+
+/* ---------------------------------------------------------------
+   Zenith docked open.
+
+   The page is a centred max-w-3xl column, so a panel fixed to the
+   right edge lands on top of it — the first version covered the TDEE
+   and healthy-weight figures completely. Padding the body instead
+   re-centres the column in what is left, and the panel sits beside
+   the plan rather than over it.
+
+   Only from sm up. On a phone the panel covers the page on purpose,
+   and there is no room to shift anything into.
+   --------------------------------------------------------------- */
+body {
+  transition: padding-right 200ms ease;
+}
+
+@media (min-width: 640px) {
+  html.zenith-open body {
+    padding-right: 380px;
+  }
+}
+
+/* Someone who prefers less motion still gets the layout, just not
+   the slide. */
+@media (prefers-reduced-motion: reduce) {
+  body {
+    transition: none;
+  }
+}
