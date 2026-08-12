@@ -26,7 +26,6 @@ export default function TodayPlan({
   cached: boolean;
 }) {
   const [section, setSection] = useState<SectionId>("diet");
-  const [coachOpen, setCoachOpen] = useState(false);
   const sections = planSections(plan, nutrition);
 
   return (
@@ -45,7 +44,7 @@ export default function TodayPlan({
 
       {/* Docks to the window rather than sitting in this layout, so it
           lives at the page level rather than inside the plan. */}
-      <Coach plan={plan} nutrition={nutrition} open={coachOpen} onOpenChange={setCoachOpen} />
+      <Coach plan={plan} nutrition={nutrition} />
     </div>
   );
 }

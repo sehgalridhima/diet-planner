@@ -73,12 +73,6 @@ export default function Planner() {
    */
   const [chosen, setChosen] = useState<SectionId | null>(null);
 
-  /*
-   * Owned here rather than inside Coach, because the card among the
-   * chooser tiles opens the same panel. Two controls on one screen
-   * both saying "Ask Zenith" have to do the same thing.
-   */
-  const [coachOpen, setCoachOpen] = useState(false);
 
   /*
    * A plan through Claude takes ten to twenty seconds. A button that
@@ -208,7 +202,6 @@ export default function Planner() {
             setChosen(id);
             setSection(id);
           }}
-          onAskZenith={() => setCoachOpen(true)}
         />
       )}
 
@@ -525,12 +518,7 @@ export default function Planner() {
           It docks to the window, so being the last child of this row
           costs the layout nothing.
           --------------------------------------------------------------- */}
-      <Coach
-        plan={result?.plan}
-        nutrition={result?.nutrition}
-        open={coachOpen}
-        onOpenChange={setCoachOpen}
-      />
+      <Coach plan={result?.plan} nutrition={result?.nutrition} />
     </div>
   );
 }

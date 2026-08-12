@@ -44,13 +44,7 @@ export const CHOICES: Choice[] = [
   },
 ];
 
-export default function PlanChooser({
-  onChoose,
-  onAskZenith,
-}: {
-  onChoose: (id: SectionId) => void;
-  onAskZenith: () => void;
-}) {
+export default function PlanChooser({ onChoose }: { onChoose: (id: SectionId) => void }) {
   return (
     <div className="animate-rise">
       <h2 className="text-lg font-semibold tracking-tight">What do you want?</h2>
@@ -86,67 +80,6 @@ export default function PlanChooser({
           </button>
         ))}
       </div>
-
-      {/* ---------------------------------------------------------------
-          Zenith, before there is anything for it to read.
-
-          There is no question box here, because there is no plan yet
-          and Zenith's whole job is reading one — a box that took a
-          question and had nothing to answer it from would be worse
-          than none. So this is the way in instead: it starts the full
-          plan, which is the one that gives Zenith the most to read.
-
-          Naming it here at all is the point. Left until after the plan
-          it was three steps deep, and nobody scrolled far enough to
-          find out it existed.
-          --------------------------------------------------------------- */}
-      <button
-        type="button"
-        onClick={onAskZenith}
-        className="group mt-3 flex w-full items-start gap-3 rounded-2xl border border-border bg-surface p-5 text-left transition-all hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-sm"
-      >
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent">
-          <svg
-            className="h-5 w-5"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={1.7}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden
-          >
-            <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.9 9.9 0 0 1-3.8-.7L3 21l1.9-4.8A8.3 8.3 0 0 1 12 3.1a8.4 8.4 0 0 1 9 8.4z" />
-          </svg>
-        </span>
-        <span className="min-w-0">
-          {/* Flex-wrap rather than an inline span: on a narrow screen an
-              inline badge breaks mid-phrase, so the pill split across
-              two lines with "free, 5" stranded on the first. */}
-          <span className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
-            <span className="font-medium">Ask Zenith</span>
-            <span className="whitespace-nowrap rounded-full bg-surface-2 px-2 py-0.5 text-[0.68rem] leading-none text-muted">
-              free, 5 questions an hour
-            </span>
-          </span>
-          <span className="mt-1.5 block text-sm leading-relaxed text-muted">
-            Ask it now about food or training in general. Build a plan above and the same coach
-            can see your actual week &mdash; swap Tuesday&rsquo;s lunch, why your target is the
-            number it is, what to eat instead of paneer.
-          </span>
-          {/* Says what the click does. The first version of this card was
-              not clickable at all, on the reasoning that Zenith had
-              nothing to read yet — but it sat under four tiles, wore the
-              same icon, and said "Ask Zenith", so of course it got
-              clicked, and did nothing. If it looks like a control it has
-              to behave like one, and it has to be the thing it is named
-              after: this opens Zenith, not the form. */}
-          <span className="mt-3 flex items-center gap-1 text-xs font-medium text-accent">
-            Ask it something
-            <span className="transition-transform group-hover:translate-x-0.5">&rarr;</span>
-          </span>
-        </span>
-      </button>
     </div>
   );
 }

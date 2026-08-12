@@ -52,23 +52,14 @@ const STARTERS_NO_PLAN = [
 export default function Coach({
   plan,
   nutrition,
-  open,
-  onOpenChange,
 }: {
   /** Absent on the home page, where no plan has been built yet */
   plan?: MealPlan;
   nutrition?: NutritionPlan;
-  /*
-   * Controlled by the page, so the card among the chooser tiles can
-   * open this panel. Two things on the same screen labelled "Ask
-   * Zenith" have to do the same thing.
-   */
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
 }) {
   const hasPlan = Boolean(plan && nutrition);
   const STARTERS = hasPlan ? STARTERS_WITH_PLAN : STARTERS_NO_PLAN;
-  const setOpen = onOpenChange;
+  const [open, setOpen] = useState(false);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [question, setQuestion] = useState("");
   const [asking, setAsking] = useState(false);
@@ -108,7 +99,7 @@ export default function Coach({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, setOpen]);
+  }, [open]);
 
   /*
    * Shifting the page happens in CSS, from a class on <html>, rather
