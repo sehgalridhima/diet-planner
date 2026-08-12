@@ -70,15 +70,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Ask a question first." }, { status: 400 });
   }
 
+  /*
+   * A plan is optional. On the home page there isn't one yet, and
+   * Zenith answers generally instead — what BMR means, how the diets
+   * differ — without inventing numbers for someone it knows nothing
+   * about. A half-formed plan counts as no plan: better to answer
+   * generally than from a shape we cannot trust.
+   */
   const plan = body.plan as MealPlan | undefined;
   const nutrition = body.nutrition as NutritionPlan | undefined;
 
-  if (!plan || !nutrition || !Array.isArray(plan.days) || typeof nutrition.calories !== "number") {
-    return NextResponse.json(
-      { error: "Make a plan first — the coach answers questions about it." },
-      { status: 400 },
-    );
-  }
+  const context =
+    plan && nutrition && Array.isArray(plan.days) && typeof nutrition.calories === "number"
+      ? planContext(plan, nutrition)
+      : null;
 
   /*
    * History arrives from the browser, so it is shaped and trimmed
@@ -127,7 +132,7 @@ export async function POST(request: Request) {
   spendOne(key);
 
   try {
-    const answer = await askCoach(question, planContext(plan, nutrition), history);
+    const answer = await askCoach(question, context, history);
     return NextResponse.json({ answer: answer.text, remaining: remainingFor(key) });
   } catch {
     return NextResponse.json(

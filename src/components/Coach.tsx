@@ -28,24 +28,47 @@ import type { MealPlan } from "@/lib/plan-types";
 type Turn = { role: "user" | "assistant"; text: string };
 
 /**
- * The questions worth spending one on. Deliberately the ones a
- * generic bot could not answer — each needs this person's plan.
+ * The questions worth spending one on.
+ *
+ * With a plan, deliberately the ones a generic bot could not answer —
+ * each needs this person's week. Without one, questions Zenith can
+ * actually answer well, rather than four prompts that would all come
+ * back with "make a plan first".
  */
-const STARTERS = [
+const STARTERS_WITH_PLAN = [
   "Why is my calorie target this number?",
   "Can I swap today's lunch for something else?",
   "I don't like paneer — what else gets me the protein?",
   "Is this workout too much to start with?",
 ];
 
+const STARTERS_NO_PLAN = [
+  "What is BMR, and why does it matter?",
+  "How does this planner decide my calories?",
+  "How much protein does a vegetarian diet actually need?",
+  "Do I need a gym to get anywhere?",
+];
+
 export default function Coach({
   plan,
   nutrition,
+  open,
+  onOpenChange,
 }: {
-  plan: MealPlan;
-  nutrition: NutritionPlan;
+  /** Absent on the home page, where no plan has been built yet */
+  plan?: MealPlan;
+  nutrition?: NutritionPlan;
+  /*
+   * Controlled by the page, so the card among the chooser tiles can
+   * open this panel. Two things on the same screen labelled "Ask
+   * Zenith" have to do the same thing.
+   */
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const hasPlan = Boolean(plan && nutrition);
+  const STARTERS = hasPlan ? STARTERS_WITH_PLAN : STARTERS_NO_PLAN;
+  const setOpen = onOpenChange;
   const [turns, setTurns] = useState<Turn[]>([]);
   const [question, setQuestion] = useState("");
   const [asking, setAsking] = useState(false);
@@ -85,7 +108,7 @@ export default function Coach({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
+  }, [open, setOpen]);
 
   /*
    * Shifting the page happens in CSS, from a class on <html>, rather
@@ -156,7 +179,7 @@ export default function Coach({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="Ask Zenith about your plan"
+        aria-label={hasPlan ? "Ask Zenith about your plan" : "Ask Zenith"}
         className={`fixed bottom-5 right-5 z-30 flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-3 shadow-lg transition-all hover:border-accent/50 hover:shadow-xl ${
           open ? "pointer-events-none opacity-0" : "opacity-100"
         }`}
@@ -224,8 +247,9 @@ export default function Coach({
           {turns.length === 0 ? (
             <>
               <p className="text-sm leading-relaxed text-muted">
-                Zenith can see your week, your numbers and your training, so ask it something
-                only your plan could answer.
+                {hasPlan
+                  ? "Zenith can see your week, your numbers and your training, so ask it something only your plan could answer."
+                  : "No plan yet, so Zenith can only answer in general — it knows nothing about you and won't pretend otherwise. Build one and it can talk about your actual week."}
               </p>
               <div className="mt-4 flex flex-col items-start gap-2">
                 {STARTERS.map((starter) => (
@@ -284,7 +308,9 @@ export default function Coach({
               onChange={(e) => setQuestion(e.target.value)}
               disabled={asking || spent}
               maxLength={400}
-              placeholder={spent ? "Back in an hour" : "Ask about this plan"}
+              placeholder={
+                spent ? "Back in an hour" : hasPlan ? "Ask about this plan" : "Ask about food or training"
+              }
               className="min-w-0 flex-1 rounded-xl border border-border bg-bg px-3.5 py-2.5 text-sm transition-colors focus:border-accent disabled:opacity-50"
             />
             <button
@@ -297,8 +323,8 @@ export default function Coach({
           </form>
 
           <p className="mt-3 text-xs leading-relaxed text-muted">
-            Answers from your plan, and won&rsquo;t work out new numbers. Not a doctor &mdash;
-            a medical condition, medication or pregnancy needs a real one.
+            {hasPlan ? "Answers from your plan, and won’t work out new numbers. " : "Won’t guess numbers for you — the planner works those out. "}
+            Not a doctor &mdash; a medical condition, medication or pregnancy needs a real one.
           </p>
         </div>
       </aside>

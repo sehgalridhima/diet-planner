@@ -5,6 +5,7 @@ import type { NutritionPlan } from "@/lib/nutrition";
 import type { MealPlan } from "@/lib/plan-types";
 import PlanView, { planSections, type SectionId } from "@/components/PlanView";
 import SectionNav from "@/components/SectionNav";
+import Coach from "@/components/Coach";
 
 /**
  * The signed-in plan, with the same sidebar the anonymous page has.
@@ -25,6 +26,7 @@ export default function TodayPlan({
   cached: boolean;
 }) {
   const [section, setSection] = useState<SectionId>("diet");
+  const [coachOpen, setCoachOpen] = useState(false);
   const sections = planSections(plan, nutrition);
 
   return (
@@ -40,6 +42,10 @@ export default function TodayPlan({
           section={section}
         />
       </div>
+
+      {/* Docks to the window rather than sitting in this layout, so it
+          lives at the page level rather than inside the plan. */}
+      <Coach plan={plan} nutrition={nutrition} open={coachOpen} onOpenChange={setCoachOpen} />
     </div>
   );
 }

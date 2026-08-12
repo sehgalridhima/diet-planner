@@ -7,6 +7,7 @@ import { EQUIPMENT_OPTIONS } from "@/lib/workout-planner";
 import PlanView, { planSections, type SectionId } from "@/components/PlanView";
 import SectionNav from "@/components/SectionNav";
 import PlanChooser from "@/components/PlanChooser";
+import Coach from "@/components/Coach";
 
 type HeightUnit = "cm" | "ft";
 
@@ -71,6 +72,13 @@ export default function Planner() {
    * app feel like it was ignoring the clicks.
    */
   const [chosen, setChosen] = useState<SectionId | null>(null);
+
+  /*
+   * Owned here rather than inside Coach, because the card among the
+   * chooser tiles opens the same panel. Two controls on one screen
+   * both saying "Ask Zenith" have to do the same thing.
+   */
+  const [coachOpen, setCoachOpen] = useState(false);
 
   /*
    * A plan through Claude takes ten to twenty seconds. A button that
@@ -200,6 +208,7 @@ export default function Planner() {
             setChosen(id);
             setSection(id);
           }}
+          onAskZenith={() => setCoachOpen(true)}
         />
       )}
 
@@ -502,6 +511,26 @@ export default function Planner() {
         />
       )}
       </div>
+
+      {/* ---------------------------------------------------------------
+          Zenith, at the page level rather than inside the plan.
+
+          It used to live inside PlanView, which meant it only existed
+          once a plan did — so on the home page there was nothing, and
+          "the chatbot isn't there" was simply correct. Here it is
+          always mounted; without a plan it answers generally and says
+          so, rather than inventing numbers for someone it knows
+          nothing about.
+
+          It docks to the window, so being the last child of this row
+          costs the layout nothing.
+          --------------------------------------------------------------- */}
+      <Coach
+        plan={result?.plan}
+        nutrition={result?.nutrition}
+        open={coachOpen}
+        onOpenChange={setCoachOpen}
+      />
     </div>
   );
 }

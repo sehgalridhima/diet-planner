@@ -5,7 +5,6 @@ import type { NutritionPlan } from "@/lib/nutrition";
 import type { MealPlan } from "@/lib/plan-types";
 import GroceryList from "@/components/GroceryList";
 import Recipes from "@/components/Recipes";
-import Coach from "@/components/Coach";
 
 /* ===============================================================
    PLAN VIEW
@@ -332,11 +331,6 @@ export default function PlanView({
             </div>
           )}
       </div>
-
-      {/* Also outside the tabs: a question can come from any section,
-          and the answer is about the whole plan rather than the part
-          you happen to be reading. */}
-      <Coach plan={plan} nutrition={nutrition} />
 
       {/* Outside the tabs on purpose: nobody should be able to miss this */}
       <footer className="rounded-2xl border border-border bg-surface-2 p-5 text-xs leading-relaxed text-muted">

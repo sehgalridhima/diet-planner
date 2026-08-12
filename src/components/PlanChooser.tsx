@@ -44,7 +44,13 @@ export const CHOICES: Choice[] = [
   },
 ];
 
-export default function PlanChooser({ onChoose }: { onChoose: (id: SectionId) => void }) {
+export default function PlanChooser({
+  onChoose,
+  onAskZenith,
+}: {
+  onChoose: (id: SectionId) => void;
+  onAskZenith: () => void;
+}) {
   return (
     <div className="animate-rise">
       <h2 className="text-lg font-semibold tracking-tight">What do you want?</h2>
@@ -96,7 +102,7 @@ export default function PlanChooser({ onChoose }: { onChoose: (id: SectionId) =>
           --------------------------------------------------------------- */}
       <button
         type="button"
-        onClick={() => onChoose("form")}
+        onClick={onAskZenith}
         className="group mt-3 flex w-full items-start gap-3 rounded-2xl border border-border bg-surface p-5 text-left transition-all hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-sm"
       >
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent">
@@ -124,18 +130,19 @@ export default function PlanChooser({ onChoose }: { onChoose: (id: SectionId) =>
             </span>
           </span>
           <span className="mt-1.5 block text-sm leading-relaxed text-muted">
-            A coach that can see the plan it made you, so you can ask it things no general chatbot
-            could answer &mdash; swap Tuesday&rsquo;s lunch, why your target is the number it is,
-            what to eat instead of paneer.
+            Ask it now about food or training in general. Build a plan above and the same coach
+            can see your actual week &mdash; swap Tuesday&rsquo;s lunch, why your target is the
+            number it is, what to eat instead of paneer.
           </span>
           {/* Says what the click does. The first version of this card was
-              not clickable at all, on the reasoning that Zenith has
+              not clickable at all, on the reasoning that Zenith had
               nothing to read yet — but it sat under four tiles, wore the
               same icon, and said "Ask Zenith", so of course it got
               clicked, and did nothing. If it looks like a control it has
-              to behave like one. */}
+              to behave like one, and it has to be the thing it is named
+              after: this opens Zenith, not the form. */}
           <span className="mt-3 flex items-center gap-1 text-xs font-medium text-accent">
-            Build a plan and ask it
+            Ask it something
             <span className="transition-transform group-hover:translate-x-0.5">&rarr;</span>
           </span>
         </span>
