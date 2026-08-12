@@ -80,6 +80,48 @@ export default function PlanChooser({ onChoose }: { onChoose: (id: SectionId) =>
           </button>
         ))}
       </div>
+
+      {/* ---------------------------------------------------------------
+          Zenith, before there is anything for it to read.
+
+          It cannot answer yet — its whole job is reading the plan you
+          are about to make — so this says what it is rather than
+          offering a box that would take a question and have nothing to
+          answer it from. Naming it here is the point: left until after
+          the plan, nobody scrolled far enough to find out it existed.
+          --------------------------------------------------------------- */}
+      <div className="mt-3 flex items-start gap-3 rounded-2xl border border-dashed border-border bg-surface/50 p-5">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent">
+          <svg
+            className="h-5 w-5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.7}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
+            <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.9 9.9 0 0 1-3.8-.7L3 21l1.9-4.8A8.3 8.3 0 0 1 12 3.1a8.4 8.4 0 0 1 9 8.4z" />
+          </svg>
+        </span>
+        <div className="min-w-0">
+          {/* Flex-wrap rather than an inline span: on a narrow screen an
+              inline badge breaks mid-phrase, so the pill split across
+              two lines with "free, 5" stranded on the first. */}
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+            <p className="font-medium">Zenith comes with it</p>
+            <span className="whitespace-nowrap rounded-full bg-surface-2 px-2 py-0.5 text-[0.68rem] leading-none text-muted">
+              free, 5 questions an hour
+            </span>
+          </div>
+          <p className="mt-1.5 text-sm leading-relaxed text-muted">
+            A coach that can see the plan it made you, so you can ask it things no general chatbot
+            could answer &mdash; swap Tuesday&rsquo;s lunch, why your target is the number it is,
+            what to eat instead of paneer. It appears under your plan once there is one to read.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
