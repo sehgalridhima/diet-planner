@@ -1,4 +1,6 @@
-# Indian Diet & Workout Planner
+# Eloquence
+
+An Indian diet and workout planner.
 
 Works out your calorie and protein targets, then fills them with food an Indian kitchen actually has — dal, roti, sabzi, curd, paneer — in portions you can picture rather than grams you have to weigh.
 

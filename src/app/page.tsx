@@ -1,4 +1,3 @@
-import Link from "next/link";
 import Planner from "@/components/Planner";
 import { getUser } from "@/lib/profile";
 
@@ -19,23 +18,6 @@ export default async function Home({
   return (
     <main className="mx-auto max-w-3xl px-6 py-14 sm:py-20">
       <header className="mb-10">
-        <div className="mb-6 flex justify-end">
-          {user ? (
-            <Link
-              href="/today"
-              className="text-sm text-muted underline underline-offset-4 hover:text-foreground"
-            >
-              Your plan
-            </Link>
-          ) : (
-            <Link
-              href="/login"
-              className="text-sm text-muted underline underline-offset-4 hover:text-foreground"
-            >
-              Sign in
-            </Link>
-          )}
-        </div>
 
         <h1 className="text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
           A diet plan built around{" "}
