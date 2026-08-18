@@ -8,6 +8,7 @@ import PlanView, { planSections, type SectionId } from "@/components/PlanView";
 import SectionNav from "@/components/SectionNav";
 import PlanChooser from "@/components/PlanChooser";
 import Coach from "@/components/Coach";
+import SavePlan from "@/components/SavePlan";
 
 type HeightUnit = "cm" | "ft";
 
@@ -35,7 +36,7 @@ const STEPS = [
   "Almost there",
 ];
 
-export default function Planner() {
+export default function Planner({ signedIn = false }: { signedIn?: boolean }) {
   const [heightUnit, setHeightUnit] = useState<HeightUnit>("cm");
   const [form, setForm] = useState({
     age: "",
@@ -518,6 +519,26 @@ export default function Planner() {
           It docks to the window, so being the last child of this row
           costs the layout nothing.
           --------------------------------------------------------------- */}
+      {/* Only once there is a plan worth keeping, and only for someone
+          who has nowhere to keep it yet. */}
+      {result && !signedIn && section !== "form" && (
+        <SavePlan
+          profile={{
+            age: form.age,
+            sex: form.sex,
+            heightCm: String(resolvedHeightCm()),
+            weightKg: form.weightKg,
+            measuredBmr: form.measuredBmr,
+            activity: form.activity,
+            goal: form.goal,
+            diet: form.diet,
+            cuisine: form.cuisine,
+            equipment: form.equipment,
+            craving: form.craving,
+          }}
+        />
+      )}
+
       <Coach plan={result?.plan} nutrition={result?.nutrition} />
     </div>
   );

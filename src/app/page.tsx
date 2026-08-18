@@ -55,7 +55,7 @@ export default async function Home({
         </p>
       )}
 
-      <Planner />
+      <Planner signedIn={Boolean(user)} />
     </main>
   );
 }

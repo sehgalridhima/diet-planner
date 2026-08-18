@@ -6,6 +6,7 @@ import { ACTIVITY_OPTIONS } from "@/lib/nutrition";
 import { CUISINE_OPTIONS, DIET_OPTIONS } from "@/lib/plan-types";
 import { EQUIPMENT_OPTIONS } from "@/lib/workout-planner";
 import type { Profile } from "@/lib/profile";
+import { clearStashedProfile, readStashedProfile } from "@/lib/pending-plan";
 
 const GOALS = [
   { value: "lose", label: "Lose fat" },
@@ -32,11 +33,46 @@ export default function ProfileForm({ profile }: { profile: Profile | null }) {
     if (detected && zoneRef.current) zoneRef.current.value = detected;
   }, []);
 
+  /*
+   * Fill the form from what they typed before signing in.
+   *
+   * Written into the DOM rather than held in state, for the same
+   * reason the timezone is: the stash lives in localStorage, which the
+   * server cannot see, so reading it during render would have the two
+   * disagree about what the page says.
+   *
+   * Filled, not saved. They arrive at a form they can read and change,
+   * and the row is written when they press Save — which is the whole
+   * distinction the button on the other side promised.
+   *
+   * Only when there is no profile yet. Someone editing details they
+   * already have should never find a week-old answer typed over them.
+   */
+  const formRef = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    if (profile) return;
+
+    const stashed = readStashedProfile();
+    if (!stashed || !formRef.current) return;
+
+    for (const [name, value] of Object.entries(stashed)) {
+      if (value === "") continue;
+      const field = formRef.current.elements.namedItem(name);
+      if (field instanceof HTMLInputElement || field instanceof HTMLSelectElement) {
+        field.value = value;
+      }
+    }
+
+    // One use. Leaving it would refill the form the next time they came
+    // to edit something.
+    clearStashedProfile();
+  }, [profile]);
+
   const field =
     "w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-sm transition-colors focus:border-accent";
 
   return (
-    <form action={formAction} className="flex flex-col gap-5">
+    <form ref={formRef} action={formAction} className="flex flex-col gap-5">
       <input
         type="hidden"
         name="timezone"
