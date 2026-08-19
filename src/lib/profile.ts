@@ -29,6 +29,12 @@ export type Profile = {
   equipment: string;
   /** Something they want to eat, fed to the planner */
   craving: string;
+  /**
+   * What to call them. Seeded from the Google account on first sign-in
+   * and editable after, and the only field on here that never reaches
+   * a calculation — it changes how the page reads, nothing else.
+   */
+  name: string;
   /** IANA zone from the browser, so "today" is the user's today */
   timezone: string;
 };
@@ -48,6 +54,7 @@ type ProfileRow = {
   equipment: string;
   craving: string | null;
   timezone: string;
+  name: string | null;
 };
 
 function fromRow(row: ProfileRow): Profile {
@@ -65,6 +72,7 @@ function fromRow(row: ProfileRow): Profile {
     equipment: row.equipment,
     craving: row.craving ?? "",
     timezone: row.timezone,
+    name: row.name ?? "",
   };
 }
 
@@ -140,6 +148,10 @@ export async function saveProfile(input: ProfileInput): Promise<{ error?: string
     equipment: input.equipment,
     craving: input.craving || null,
     timezone: input.timezone,
+    // Empty means "not given", not an empty string — the column is
+    // nullable because a name is the one field here that no equation
+    // needs, so absent has to be an ordinary state.
+    name: input.name?.trim() || null,
   });
 
   if (error) {

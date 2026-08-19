@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getUser } from "@/lib/profile";
+import { getProfile, getUser } from "@/lib/profile";
 import AccountMenu from "@/components/AccountMenu";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -32,6 +32,8 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const user = await getUser();
+  // Only for the name in the header; everything else here is the user record.
+  const profile = user ? await getProfile() : null;
 
   return (
     <html
@@ -61,7 +63,7 @@ export default async function RootLayout({
               from your own weight that is the wrong thing to leave
               ambiguous. Signed out, it is the way in. */}
           {user?.email ? (
-            <AccountMenu email={user.email} />
+            <AccountMenu email={user.email} name={profile?.name ?? ""} />
           ) : (
             <Link
               href="/login"

@@ -14,7 +14,14 @@ const GOALS = [
   { value: "gain", label: "Build muscle" },
 ];
 
-export default function ProfileForm({ profile }: { profile: Profile | null }) {
+export default function ProfileForm({
+  profile,
+  suggestedName = "",
+}: {
+  profile: Profile | null;
+  /** What Google calls them, used only until they have saved a name of their own */
+  suggestedName?: string;
+}) {
   const [state, formAction, pending] = useActionState(saveProfileAction, null);
 
   /*
@@ -81,6 +88,19 @@ export default function ProfileForm({ profile }: { profile: Profile | null }) {
       />
 
       <div className="grid gap-5 sm:grid-cols-2">
+        {/* First, because it is the only question here that is not about
+            a measurement — and the only one that may be left blank. */}
+        <Field label="Name" hint="what we call you">
+          <input
+            type="text"
+            name="name"
+            maxLength={60}
+            defaultValue={profile?.name || suggestedName}
+            placeholder="optional"
+            className={field}
+          />
+        </Field>
+
         <Field label="Age" hint="years">
           <input
             type="number"

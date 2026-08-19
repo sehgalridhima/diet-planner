@@ -61,7 +61,22 @@ export default async function TodayPage() {
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-5 py-10">
       <header className="flex flex-wrap items-baseline justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Today</h1>
+          {/* ---------------------------------------------------------
+              Their name, if they gave one.
+
+              The time of day comes from the timezone already on the
+              profile — the same one that decides which day's food this
+              page shows. Reading the server's clock would wish someone
+              in Delhi good morning over dinner, which is the sort of
+              detail that makes a greeting feel automated rather than
+              addressed to anyone.
+
+              Falls back to "Today" with no name, rather than to
+              "Good morning, there".
+              --------------------------------------------------------- */}
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {profile.name ? `${greeting(profile.timezone)}, ${profile.name}` : "Today"}
+          </h1>
           <p className="mt-1 text-sm text-muted">
             {profile.weightKg} kg
             {change !== null && (
@@ -93,4 +108,25 @@ export default async function TodayPage() {
       />
     </main>
   );
+}
+
+/** Morning, afternoon or evening where they are, not where the server is. */
+function greeting(timezone: string): string {
+  let hour: number;
+  try {
+    hour = Number(
+      new Intl.DateTimeFormat("en-GB", { hour: "numeric", hour12: false, timeZone: timezone }).format(
+        new Date(),
+      ),
+    );
+  } catch {
+    // A stored zone the runtime does not recognise should cost a
+    // greeting, not the page.
+    return "Hello";
+  }
+
+  if (!Number.isFinite(hour)) return "Hello";
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
 }

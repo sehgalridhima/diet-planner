@@ -12,6 +12,17 @@ export default async function ProfilePage({
   const { welcome } = await searchParams;
 
   const profile = await getProfile();
+
+  /*
+   * Google hands us a name at sign-in. Offering it as the default
+   * beats an empty box someone has to fill with something we were
+   * already told — and it stays a default, editable before it is
+   * saved and after.
+   */
+  const suggestedName =
+    (user.user_metadata?.full_name as string | undefined) ??
+    (user.user_metadata?.name as string | undefined) ??
+    "";
   const weights = await getWeightLog(10);
 
   return (
@@ -37,7 +48,7 @@ export default async function ProfilePage({
         </p>
       )}
 
-      <ProfileForm profile={profile} />
+      <ProfileForm profile={profile} suggestedName={suggestedName} />
 
       {weights.length > 0 && (
         <section>

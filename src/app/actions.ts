@@ -57,6 +57,9 @@ export async function saveProfileAction(_prev: unknown, formData: FormData) {
   const cuisine = pick(formData.get("cuisine"), CUISINES) ?? "any";
   const equipment = String(formData.get("equipment") ?? "Bodyweight only").slice(0, 120);
   const craving = String(formData.get("craving") ?? "").trim().slice(0, 120);
+  // Sixty to match the column. Trimmed, because a name padded with
+  // spaces would render as a gap in the header.
+  const name = String(formData.get("name") ?? "").trim().slice(0, 60);
 
   // Sent by a hidden field the browser fills in, because the server
   // runs in UTC and would roll the plan over at 5:30am in India.
@@ -79,6 +82,7 @@ export async function saveProfileAction(_prev: unknown, formData: FormData) {
     cuisine,
     equipment,
     craving,
+    name,
     timezone,
   };
 

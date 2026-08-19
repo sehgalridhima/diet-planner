@@ -21,7 +21,14 @@ import { signOutAction } from "@/app/actions";
    thing it is meant to confirm is exactly that they are logged in.
    =============================================================== */
 
-export default function AccountMenu({ email }: { email: string }) {
+export default function AccountMenu({
+  email,
+  name = "",
+}: {
+  email: string;
+  /** Their name, once they have one. The address stays visible either way. */
+  name?: string;
+}) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -55,12 +62,12 @@ export default function AccountMenu({ email }: { email: string }) {
         className="flex items-center gap-2 rounded-full border border-border bg-surface py-1 pl-1 pr-1 text-sm transition-colors hover:border-accent/50 sm:pr-3"
       >
         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold uppercase text-accent-contrast">
-          {email.charAt(0)}
+          {(name || email).charAt(0)}
         </span>
         {/* The address itself is the point, but it is too long for a
             phone header — there it is the initial alone, and the full
             address waits inside the menu. */}
-        <span className="hidden max-w-[14rem] truncate text-muted sm:inline">{email}</span>
+        <span className="hidden max-w-[14rem] truncate text-muted sm:inline">{name || email}</span>
       </button>
 
       {open && (
@@ -70,7 +77,15 @@ export default function AccountMenu({ email }: { email: string }) {
         >
           <div className="border-b border-border px-4 py-3">
             <p className="text-xs text-muted">Signed in as</p>
-            <p className="mt-0.5 truncate text-sm font-medium" title={email}>
+            {name && (
+              <p className="mt-0.5 truncate text-sm font-medium" title={name}>
+                {name}
+              </p>
+            )}
+            {/* The address is never hidden, whatever the name says. It is
+                the thing that actually identifies the account, and it is
+                the one someone checks when a plan looks wrong. */}
+            <p className={`truncate text-xs text-muted ${name ? "" : "mt-0.5 text-sm font-medium text-foreground"}`} title={email}>
               {email}
             </p>
           </div>
