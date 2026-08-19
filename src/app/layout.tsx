@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getUser } from "@/lib/profile";
+import AccountMenu from "@/components/AccountMenu";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -55,15 +56,20 @@ export default async function RootLayout({
           >
             Eloquence
           </Link>
-          {/* The one link that belongs beside the name on every page.
-              It was on the home page only, in its own row, which put it
-              on a second line under the wordmark with nothing between. */}
-          <Link
-            href={user ? "/today" : "/login"}
-            className="text-sm text-muted underline underline-offset-4 hover:text-foreground"
-          >
-            {user ? "Your plan" : "Sign in"}
-          </Link>
+          {/* Signed in, this says WHICH account — "Your plan" told you
+              somebody was signed in but not who, and on an app built
+              from your own weight that is the wrong thing to leave
+              ambiguous. Signed out, it is the way in. */}
+          {user?.email ? (
+            <AccountMenu email={user.email} />
+          ) : (
+            <Link
+              href="/login"
+              className="text-sm text-muted underline underline-offset-4 hover:text-foreground"
+            >
+              Sign in
+            </Link>
+          )}
         </header>
         {children}
       </body>
