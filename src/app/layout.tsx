@@ -51,12 +51,24 @@ export default async function RootLayout({
             the one about their food, not the name of the thing showing
             it to them.
             --------------------------------------------------------------- */}
-        <header className="mx-auto flex w-full max-w-3xl items-center justify-between px-6 pt-6">
+        <header className="mx-auto flex w-full max-w-3xl items-center justify-between px-6 pt-6 pb-2">
+          {/* ---------------------------------------------------------
+              The name, given some presence.
+
+              It was set at the same size as the sign-in link beside it,
+              which made the product name read as one more piece of
+              navigation. A mark to anchor it and a real type size fix
+              that without turning the header into a banner — the plan
+              is still what the page is for.
+              --------------------------------------------------------- */}
           <Link
             href="/"
-            className="text-sm font-semibold tracking-tight transition-opacity hover:opacity-70"
+            className="group flex items-center gap-2.5 transition-opacity hover:opacity-80"
           >
-            Eloquence
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-accent text-base font-semibold text-accent-contrast">
+              E
+            </span>
+            <span className="text-xl font-semibold tracking-tight">Eloquence</span>
           </Link>
           {/* Signed in, this says WHICH account — "Your plan" told you
               somebody was signed in but not who, and on an app built

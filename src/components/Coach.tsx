@@ -171,7 +171,7 @@ export default function Coach({
         type="button"
         onClick={() => setOpen(true)}
         aria-label={hasPlan ? "Ask Zenith about your plan" : "Ask Zenith"}
-        className={`fixed bottom-5 right-5 z-30 flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-3 shadow-lg transition-all hover:border-accent/50 hover:shadow-xl ${
+        className={`fixed bottom-5 right-5 z-30 flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-3 shadow-[var(--lift-hover)] transition-all hover:-translate-y-0.5 hover:border-accent/50 ${
           open ? "pointer-events-none opacity-0" : "opacity-100"
         }`}
       >

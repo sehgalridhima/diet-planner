@@ -53,16 +53,22 @@ export default function PlanChooser({ onChoose }: { onChoose: (id: SectionId) =>
       </p>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        {CHOICES.map((choice) => (
+        {CHOICES.map((choice, i) => (
           <button
             key={choice.id}
             type="button"
             onClick={() => onChoose(choice.id)}
-            className="group flex flex-col rounded-2xl border border-border bg-surface p-5 text-left transition-all hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-sm"
+            className="group flex flex-col rounded-2xl border border-border bg-surface p-5 text-left shadow-[var(--lift)] transition-all hover:-translate-y-1 hover:border-accent/40 hover:shadow-[var(--lift-hover)]"
           >
             <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-soft text-accent">
-                <Icon id={choice.id} className="h-5 w-5" />
+              {/* Two colours across four tiles, so the grid has some
+                  rhythm instead of reading as one repeated card. */}
+              <span
+                className={`flex h-11 w-11 items-center justify-center rounded-xl ${
+                  i % 2 === 0 ? "bg-accent-soft text-accent" : "bg-accent-2-soft text-accent-2"
+                }`}
+              >
+                <Icon id={choice.id} className="h-[1.35rem] w-[1.35rem]" />
               </span>
               <span className="font-medium">{choice.title}</span>
               <span className="ml-auto rounded-full bg-surface-2 px-2 py-0.5 text-[0.68rem] leading-none text-muted">

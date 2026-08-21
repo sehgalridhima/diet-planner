@@ -29,7 +29,7 @@ export default function TodayPlan({
   const sections = planSections(plan, nutrition);
 
   return (
-    <div className="flex flex-col gap-6 sm:flex-row sm:gap-8">
+    <div className="flex min-w-0 flex-col gap-6 sm:flex-row sm:gap-8">
       <SectionNav items={sections} section={section} onSelect={setSection} />
 
       <div className="min-w-0 flex-1">

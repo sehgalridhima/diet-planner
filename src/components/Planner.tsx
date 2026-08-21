@@ -192,7 +192,7 @@ export default function Planner({ signedIn = false }: { signedIn?: boolean }) {
   const asking = sections.find((x) => x.id === section)?.label ?? "your plan";
 
   return (
-    <div className="flex flex-col gap-6 sm:flex-row sm:gap-8">
+    <div className="flex min-w-0 flex-col gap-6 sm:flex-row sm:gap-8">
       {result && <SectionNav items={sections} section={section} onSelect={setSection} />}
 
       {/* ---------------- PANEL ---------------- */}
@@ -221,6 +221,7 @@ export default function Planner({ signedIn = false }: { signedIn?: boolean }) {
           <p className="mt-1 text-sm text-muted">
             Only the questions this needs, nothing else.
           </p>
+
         </div>
       )}
       <form
@@ -504,23 +505,16 @@ export default function Planner({ signedIn = false }: { signedIn?: boolean }) {
           section={section}
         />
       )}
-      </div>
 
       {/* ---------------------------------------------------------------
-          Zenith, at the page level rather than inside the plan.
+          Inside the panel, not beside it.
 
-          It used to live inside PlanView, which meant it only existed
-          once a plan did — so on the home page there was nothing, and
-          "the chatbot isn't there" was simply correct. Here it is
-          always mounted; without a plan it answers generally and says
-          so, rather than inventing numbers for someone it knows
-          nothing about.
-
-          It docks to the window, so being the last child of this row
-          costs the layout nothing.
+          This started as a sibling of the sidebar, which made it a
+          third column in the flex row and squeezed the plan into a
+          strip a word wide. Coach gets away with sitting out there
+          because it is `fixed` and leaves the flow entirely; anything
+          that renders in place has to live in the column it belongs to.
           --------------------------------------------------------------- */}
-      {/* Only once there is a plan worth keeping, and only for someone
-          who has nowhere to keep it yet. */}
       {result && !signedIn && section !== "form" && (
         <SavePlan
           profile={{
@@ -538,7 +532,21 @@ export default function Planner({ signedIn = false }: { signedIn?: boolean }) {
           }}
         />
       )}
+      </div>
 
+      {/* ---------------------------------------------------------------
+          Zenith, at the page level rather than inside the plan.
+
+          It used to live inside PlanView, which meant it only existed
+          once a plan did — so on the home page there was nothing, and
+          "the chatbot isn't there" was simply correct. Here it is
+          always mounted; without a plan it answers generally and says
+          so, rather than inventing numbers for someone it knows
+          nothing about.
+
+          It docks to the window, so being the last child of this row
+          costs the layout nothing.
+          --------------------------------------------------------------- */}
       <Coach plan={result?.plan} nutrition={result?.nutrition} />
     </div>
   );

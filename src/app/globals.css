@@ -5,18 +5,35 @@
 --------------------------------------------------------------- */
 
 :root {
-  --background: #ffffff;
-  --surface: #fafaf9;
-  --surface-2: #f2f2f0;
-  --foreground: #10100e;
-  --muted: #6a6a63;
-  --border: #e6e6e1;
+  /* Warm, not white. Pure #fff under a whole page of cards reads as
+     paperwork; a few degrees toward cream makes the same cards look
+     like they are sitting on something. */
+  --background: #fdfcf9;
+  --surface: #ffffff;
+  --surface-2: #f4f2ec;
+  --foreground: #14130f;
+  --muted: #6b6558;
+  --border: #e7e3d9;
 
-  --accent: #16794a;
-  --accent-soft: #e6f4ec;
+  /* Deeper and warmer than the old #16794a, which went grey against a
+     cream background. */
+  --accent: #12684a;
+  --accent-soft: #e3f2e9;
   --accent-contrast: #ffffff;
+
+  /* A second accent, so the page is not one green and a lot of grey.
+     Terracotta sits opposite the green without fighting it, and it is
+     the colour Indian food actually is. */
+  --accent-2: #c2562f;
+  --accent-2-soft: #fbeee7;
+
   --warn: #9a5b00;
   --warn-soft: #fdf3e2;
+
+  /* Cards need to sit on the page, not be drawn on it. Two levels:
+     resting, and anything the cursor is over. */
+  --lift: 0 1px 2px rgba(20, 19, 15, 0.04), 0 4px 12px rgba(20, 19, 15, 0.04);
+  --lift-hover: 0 2px 4px rgba(20, 19, 15, 0.05), 0 12px 28px rgba(20, 19, 15, 0.08);
 
   /* Ambient wash behind everything. Kept very low in opacity: this is a
      form and a lot of numbers, and a background that competes with them
@@ -36,18 +53,28 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0b0a;
-    --surface: #121412;
-    --surface-2: #1a1d1a;
-    --foreground: #f0f2ef;
-    --muted: #9a9f97;
-    --border: #262a26;
+    --background: #0b0b09;
+    --surface: #141513;
+    --surface-2: #1c1e1b;
+    --foreground: #f2f1ec;
+    --muted: #9d9a90;
+    --border: #2a2c28;
 
     --accent: #4ade9a;
     --accent-soft: #10241a;
     --accent-contrast: #06110b;
+
+    --accent-2: #f08b5e;
+    --accent-2-soft: #2a1710;
+
     --warn: #f2b45c;
     --warn-soft: #2a1f0d;
+
+    /* Shadow does almost nothing on a dark background — the lift has to
+       come from the surface being lighter than what it sits on, which
+       the tokens above already do. Kept shallow so it is not mud. */
+    --lift: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --lift-hover: 0 4px 16px rgba(0, 0, 0, 0.5);
 
     /* Dark needs roughly half again what light does to read at all: a
        10% overlay on #0a0b0a is invisible, where the same value over
@@ -74,6 +101,8 @@
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
   --color-accent-contrast: var(--accent-contrast);
+  --color-accent-2: var(--accent-2);
+  --color-accent-2-soft: var(--accent-2-soft);
   --color-warn: var(--warn);
   --color-warn-soft: var(--warn-soft);
   --color-protein: var(--protein);

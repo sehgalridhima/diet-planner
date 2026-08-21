@@ -102,9 +102,26 @@ export default function SectionNav({
   footnote?: string;
 }) {
   return (
-    <nav aria-label="Sections" className="sm:w-56 sm:shrink-0">
+    /* min-w-0 and max-w-full are load-bearing on a phone.
+
+         The row of section buttons is wider than a phone and scrolls
+         sideways, which is the intended behaviour — but a flex item is
+         allowed to be as wide as its content unless told otherwise, so
+         the nav reported a min-content width of ~730px and dragged the
+         whole page out to it. The result was a 390px viewport laying
+         out at 768: headings clipped, numbers cut off the right edge,
+         and the scroller not actually scrolling, because it had been
+         given all the room it asked for.
+
+         The cap is in viewport units, not a percentage: a percentage
+         resolves against the very box being pushed wide, so it agrees
+         with whatever width the content asked for. The viewport is the
+         one width in this chain that nothing on the page can argue
+         with. The 3rem is the page's own px-6 gutters, which the
+         viewport does not know about. */
+      <nav aria-label="Sections" className="max-w-[calc(100vw-3rem)] overflow-x-auto sm:max-w-none sm:w-56 sm:shrink-0 sm:overflow-visible">
       <div className="sm:sticky sm:top-6">
-        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:flex-col sm:gap-0.5 sm:overflow-visible sm:rounded-2xl sm:border sm:border-border sm:bg-surface/60 sm:p-2 sm:px-2 sm:pb-2">
+        <div className="-mx-1 flex gap-2 px-1 pb-1 sm:mx-0 sm:flex-col sm:gap-0.5 sm:overflow-visible sm:rounded-2xl sm:border sm:border-border sm:bg-surface/60 sm:p-2 sm:px-2 sm:pb-2">
           {items.map((item) => {
             const active = section === item.id;
             return (

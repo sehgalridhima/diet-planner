@@ -72,6 +72,64 @@ export function planSections(plan: MealPlan, nutrition: NutritionPlan) {
   ];
 }
 
+/* ---------------------------------------------------------------
+   A colour and a glyph per meal slot.
+
+   Four identical white cards meant the only way to tell breakfast
+   from dinner was to read the heading. These make the day scannable
+   — and they run warm through the day on purpose, so the order of
+   the four is visible even out of context.
+   --------------------------------------------------------------- */
+const SLOT_STYLE: Record<string, { bar: string; chip: string }> = {
+  Breakfast: { bar: "bg-accent", chip: "bg-accent-soft text-accent" },
+  Lunch: { bar: "bg-carbs", chip: "bg-warn-soft text-warn" },
+  Snack: { bar: "bg-fat", chip: "bg-fat/12 text-fat" },
+  Dinner: { bar: "bg-accent-2", chip: "bg-accent-2-soft text-accent-2" },
+};
+
+function MealIcon({ slot, className }: { slot: string; className?: string }) {
+  const common = {
+    className,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.7,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true,
+  };
+
+  switch (slot) {
+    case "Breakfast": // sunrise
+      return (
+        <svg {...common}>
+          <path d="M12 3v3M5.5 8.5 7.6 10.6M18.5 8.5 16.4 10.6M3 18h18M6 18a6 6 0 0 1 12 0" />
+        </svg>
+      );
+    case "Lunch": // full plate
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="8.5" />
+          <circle cx="12" cy="12" r="3.5" />
+        </svg>
+      );
+    case "Snack": // cup
+      return (
+        <svg {...common}>
+          <path d="M4 8h12v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z" />
+          <path d="M16 9.5h2a2.5 2.5 0 0 1 0 5h-2" />
+          <path d="M7 3.5v2M11 3.5v2" />
+        </svg>
+      );
+    default: // moon
+      return (
+        <svg {...common}>
+          <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z" />
+        </svg>
+      );
+  }
+}
+
 export default function PlanView({
   plan,
   nutrition,
@@ -226,10 +284,23 @@ export default function PlanView({
                 {day.meals.map((meal) => (
                   <div
                     key={meal.slot}
-                    className="print-block rounded-2xl border border-border bg-surface p-5"
+                    className="print-block overflow-hidden rounded-2xl border border-border bg-surface shadow-[var(--lift)]"
                   >
-                    <div className="flex flex-wrap items-baseline justify-between gap-2">
-                      <h3 className="font-medium">{meal.slot}</h3>
+                    {/* A stripe in the slot's own colour, so four meals
+                        read as four things at a glance rather than as
+                        four paragraphs that have to be read to be told
+                        apart. */}
+                    <div className={`h-1 ${SLOT_STYLE[meal.slot].bar}`} />
+                    <div className="p-5">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <h3 className="flex items-center gap-2.5 font-medium">
+                        <span
+                          className={`flex h-8 w-8 items-center justify-center rounded-lg ${SLOT_STYLE[meal.slot].chip}`}
+                        >
+                          <MealIcon slot={meal.slot} className="h-[1.05rem] w-[1.05rem]" />
+                        </span>
+                        {meal.slot}
+                      </h3>
                       <p className="text-xs text-muted">
                         <span className="font-medium text-foreground">{meal.calories}</span> kcal
                         {" · "}
@@ -251,6 +322,7 @@ export default function PlanView({
                         {meal.swap}
                       </p>
                     )}
+                    </div>
                   </div>
                 ))}
               </div>
