@@ -7,6 +7,7 @@ import {
 } from "@/lib/coach";
 import type { NutritionPlan } from "@/lib/nutrition";
 import type { MealPlan } from "@/lib/plan-types";
+import { claimAi } from "@/lib/budget";
 
 /* ===============================================================
    COACH API
@@ -123,6 +124,26 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "The coach isn't switched on for this site yet." },
       { status: 503 },
+    );
+  }
+
+  /*
+   * The site-wide budget, claimed after the per-visitor check so that
+   * someone asking their sixth question in an hour is refused out of
+   * their own allowance rather than the day's.
+   *
+   * Nothing to fall back to. A plan can come from the built-in planner
+   * with no model at all, but nothing can answer a question without
+   * one, so this says so plainly rather than pretending.
+   */
+  if (!(await claimAi("coach"))) {
+    return NextResponse.json(
+      {
+        error:
+          "Zenith has used its budget for today across the whole site; it resets at midnight IST. Your plan and every number in it are unaffected — those are worked out in code and never needed the model.",
+        remaining: remainingFor(key),
+      },
+      { status: 429 },
     );
   }
 

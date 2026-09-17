@@ -4,6 +4,7 @@ import { buildAiPlan, estimateCostInr, hasApiKey } from "@/lib/ai-planner";
 import { buildWorkout } from "@/lib/workout-planner";
 import { CUISINE_OPTIONS, type Cuisine, type DietType, type MealPlan } from "@/lib/plan-types";
 import type { Equipment } from "@/lib/workout-planner";
+import { claimAi } from "@/lib/budget";
 
 /* ===============================================================
    PLAN BUILDING — one path, two callers
@@ -100,6 +101,13 @@ export type PlanResult = {
   plan: MealPlan;
   nutrition: NutritionPlan;
   cached: boolean;
+  /**
+   * True when the AI planner was skipped because the site's daily
+   * budget for fresh plans was already spent. The caller needs to tell
+   * these apart: an hourly limit is about the person asking and clears
+   * within the hour, this one is about the site and clears at midnight.
+   */
+  budgetSpent?: boolean;
 };
 
 /**
@@ -180,7 +188,19 @@ export async function buildPlan(
     return { plan, nutrition, cached: false };
   }
 
+  /*
+   * The claim goes here rather than in the route because the route
+   * cannot know whether this request will reach the model at all: the
+   * cache is read above, and a workout-only request never calls it.
+   * Claiming any earlier would spend the day's budget on plans that
+   * cost nothing to serve.
+   */
+  let budgetSpent = false;
   if (allowAi && hasApiKey()) {
+    budgetSpent = !(await claimAi("plan"));
+  }
+
+  if (allowAi && hasApiKey() && !budgetSpent) {
     try {
       const built = await buildAiPlan(nutrition, input, diet, equipment, craving, cuisine);
       const { usage } = built;
@@ -198,5 +218,5 @@ export async function buildPlan(
   const built = buildBuiltinPlan(nutrition, input, diet, equipment, preference);
   const plan = wantsTraining ? built : stripTraining(built);
   writeCache(key, { plan, nutrition, storedAt: Date.now() });
-  return { plan, nutrition, cached: false };
+  return { plan, nutrition, cached: false, budgetSpent };
 }

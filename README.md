@@ -54,8 +54,17 @@ Four things, all in code rather than left to discipline:
 | **Result caching** | Inputs are rounded before becoming the cache key, so people with similar bodies and the same goal share a plan instead of each paying for one. |
 | **Low effort, schema-constrained output** | Choosing meals off a target is not a reasoning problem, so the model runs at low effort and returns only the fields the page renders. It cannot pad the response with prose. |
 | **Rate limiting** | Five fresh plans per IP per hour. Past that, the built-in planner answers. |
+| **A daily site budget** | Eight fresh plans and forty Zenith answers a day, across everyone. |
 
-The one guard that is not in this repo, and matters most: **set a spend limit in the Anthropic console.** Rate limiting is best-effort — on serverless, each instance keeps its own counter.
+The two limits guard different things and both are worth having. The per-IP one is a `Map` in module scope — each serverless instance keeps its own, so someone determined gets more than five. It stops one person hammering the form, which is all it was ever able to do.
+
+The daily one is the ceiling it could not be: Postgres, where the increment and the check happen in one atomic statement (`src/lib/budget.ts`, `supabase/migrations/0003_ai_budget.sql`). The limits live in the migration rather than the app, because the anon key is public and a limit you can pass as an argument is not a limit. It holds one count per day per kind and nothing else — no profile, no user id, nothing from the tables that RLS protects.
+
+The claim happens where the model is actually called, not at the route, because the cache is read first and a workout-only request never reaches the model. Spending the day's budget on a plan that costs nothing to serve would make the count a lie.
+
+When the plan budget runs out the built-in planner answers instead, so a plan still comes back and the numbers are identical — they are worked out in code either way. Zenith has nothing to fall back to, so it says so.
+
+Underneath all of it: **the Anthropic balance with auto-reload off.** Spending cannot exceed what has been paid for, so the worst case is not a bill — it is Eloquence going quiet, along with Lead Scout and Money Reader, because all three spend the same balance.
 
 Zenith is metered separately: five questions per IP per hour, a small model, short answers, and trimmed history. Measured rather than estimated — about ₹0.53 a question with a plan attached and ₹0.17 without. `scripts/measure-coach.mts` prints the real figure on demand; it spends credit, so it is not part of the checks.
 

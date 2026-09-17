@@ -100,13 +100,27 @@ export async function POST(request: Request) {
 
   const result = await buildPlan(validInput, diet, kit, { allowAi: !limited, craving, cuisine, want });
 
+  /*
+   * Two different reasons for the same outcome, and they are not
+   * interchangeable to the person reading it. The hourly one is about
+   * them and clears within the hour. The daily one is about the whole
+   * site and clears at midnight — telling them to wait an hour then
+   * would be a lie they would find out about at the fifty-ninth minute.
+   *
+   * The daily one is checked first: when both are true it is the one
+   * that actually stopped the call, and it is the one with the longer
+   * wait.
+   */
+  const notice = result.cached
+    ? null
+    : result.budgetSpent
+      ? "This site has used its daily budget for AI-generated plans; it resets at midnight IST. This plan came from the built-in planner instead — the numbers are identical, because they are worked out in code either way, and only the food choices are less tailored."
+      : limited
+        ? "You have reached the hourly limit for AI-generated plans. This plan came from the built-in planner instead — the numbers are identical, the food choices are less tailored."
+        : null;
+
   return NextResponse.json({
     ...result,
-    ...(limited && !result.cached
-      ? {
-          notice:
-            "You have reached the hourly limit for AI-generated plans. This plan came from the built-in planner instead — the numbers are identical, the food choices are less tailored.",
-        }
-      : {}),
+    ...(notice ? { notice } : {}),
   });
 }
