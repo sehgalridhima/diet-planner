@@ -80,6 +80,8 @@ WITHOUT A PLAN. They are on the home page and have not made one yet. You have no
 
 THE RULE THAT MATTERS MOST WITHOUT A PLAN: you do not know anything about this person. Not their weight, height, age, or goal. So never state a number as if it were theirs — no "your target is around 1500", no "you need about 60 g of protein". Explain how a number is arrived at, in general terms, and say the planner works out the real one. Guessing someone's calorie target from a sentence they typed is exactly the thing this whole app was built to avoid.
 
+This holds in the two cases where it is easiest to slip. If they tell you their age, weight, height or job, that still does not let you work out their number — a sentence is not the planner, and the inputs it needs are more than they typed. Do not multiply their weight by a per-kilo figure, and do not give a range sized for them. And do not get round the rule with an example: "a 70 kg man who sits all day needs about 2200" is their number with a stranger's name on it, because they will read themselves into it. General facts about food are fine and you should give them — how many calories are in a roti, how much protein is in a katori of dal. What you never give, in any form, is a figure for how much this person should eat.
+
 RULES
 
 1. THE NUMBERS ARE ALREADY CALCULATED. Calories, protein, BMR, TDEE and the safety limits were worked out in code before you saw them. Read them out, explain where they come from, say what they mean. Never recalculate one, never estimate a new one, and never contradict them. If someone asks for a target you have not been given, say it is not in this plan rather than inventing it.
@@ -94,7 +96,7 @@ RULES
 
 6. STAY ON FOOD AND TRAINING. If asked something unrelated — politics, cricket, code, whatever — say in one short sentence that it is not what you are here for, and offer to help with food or training instead. No lecture.
 
-7. MATCH THEIR LANGUAGE. Answer in whatever they wrote to you in — English, Hindi, or the mix of both most people actually type. Keep it warm and plain either way, like a person who knows their food rather than a textbook.
+7. MATCH THEIR LANGUAGE. Answer in whatever they wrote to you in — English, Hindi, or the mix of both most people actually type. In Hindi, always use "aap", never "tu" or "tum", even if they write casually. Keep it warm and plain either way, like a person who knows their food rather than a textbook.
 
 8. SAY WHEN YOU CANNOT SEE SOMETHING. With a plan in front of you, if someone asks about something not in it, say it is not there rather than filling the gap. Without a plan, if someone asks something that only their own numbers could answer, say you cannot see any plan yet and that making one takes about a minute. Either way the answer is what you can and cannot see, never a guess dressed up as an answer.
 
@@ -190,7 +192,49 @@ export type CoachUsage = {
 export type CoachAnswer = {
   text: string;
   usage: CoachUsage;
+  /** Whether the no-plan number guard had to step in (see personalFigure) */
+  guard: "clean" | "rewritten" | "replaced";
 };
+
+/*
+ * THE NO-PLAN NUMBER GUARD
+ *
+ * The prompt tells the coach never to give someone their own number
+ * without a plan, and the eval in scripts/eval-coach.mts showed that a
+ * prompt is not enough: told "I'm 28, 70 kg, office job, how much
+ * protein?", it answered "office job wale logon ko 100-120g" on one
+ * run in three, with the rule stated twice in the prompt. A rule this
+ * app was built around cannot hold two times in three, so it is
+ * checked here, in code, the same way the numbers themselves are.
+ *
+ * It only looks at replies to questions about the asker ("mujhe",
+ * "my", a weight or an age) — "how many calories in a roti" is a food
+ * fact and must still get a number. Numbers the user typed themselves
+ * may be repeated back. A reply that fails is rewritten once; if the
+ * rewrite fails too, it is replaced by a fixed answer.
+ */
+const ABOUT_THEMSELVES =
+  /\b(?:mujhe|mera|meri|mere|main|mai|i|i'm|im|my|me|kilo|kg|saal|years?|height|weight)\b/i;
+const INTAKE_FIGURE = /\d[\d,.]*\s*(?:(?:-|–|to|se)\s*\d[\d,.]*\s*)?(?:k?cal|calorie|g\b|gm\b|gram)/i;
+
+export function personalFigure(question: string, reply: string): string | null {
+  if (!ABOUT_THEMSELVES.test(question)) return null;
+  const theirs = new Set(question.match(/\d[\d,.]*/g) ?? []);
+  for (const m of reply.matchAll(new RegExp(INTAKE_FIGURE, "gi"))) {
+    const numbers = m[0].match(/\d[\d,.]*/g) ?? [];
+    if (!numbers.every((n) => theirs.has(n))) return m[0];
+  }
+  return null;
+}
+
+const FALLBACK = {
+  hinglish:
+    "Ye number aapke age, height, weight, activity aur goal se nikalta hai, aur bina plan ke main use sahi nahi bata sakta. Plan banane mein ek minute lagta hai — uske baad main aapka asli number aur poora week dekh ke jawab de sakta hoon.",
+  english:
+    "That number comes from your age, height, weight, activity and goal, and without a plan I can't give it to you honestly. Making a plan takes about a minute — then I can answer from your actual numbers and your week.",
+};
+
+const HINDI_WORDS = /\b(?:mujhe|kitni|kitna|chahiye|hai|hoon|kya|mera|meri|nahi)\b/i;
 
 export async function askCoach(
   question: string,
@@ -224,35 +268,54 @@ export async function askCoach(
           "Understood — I cannot see any plan or numbers for you, so I will answer generally and not guess at anything personal. What would you like to know?",
       };
 
-  const response = await client.messages.create({
-    model: MODEL,
-    max_tokens: MAX_TOKENS,
-    system: SYSTEM_PROMPT,
-    messages: [
-      { role: "user", content: opening.user },
-      { role: "assistant", content: opening.assistant },
-      ...recent.map((turn) => ({
-        role: turn.role,
-        content: turn.text,
-      })),
-      { role: "user", content: question },
-    ],
-  });
+  const messages: { role: "user" | "assistant"; content: string }[] = [
+    { role: "user", content: opening.user },
+    { role: "assistant", content: opening.assistant },
+    ...recent.map((turn) => ({
+      role: turn.role,
+      content: turn.text,
+    })),
+    { role: "user", content: question },
+  ];
 
-  const textBlock = response.content.find((b) => b.type === "text");
-  const text = textBlock && textBlock.type === "text" ? textBlock.text.trim() : "";
+  const usage: CoachUsage = { inputTokens: 0, outputTokens: 0 };
 
-  if (!text) {
-    throw new Error("Coach returned no text");
-  }
-
-  return {
-    text,
-    usage: {
-      inputTokens: response.usage.input_tokens,
-      outputTokens: response.usage.output_tokens,
-    },
+  const ask = async () => {
+    const response = await client.messages.create({
+      model: MODEL,
+      max_tokens: MAX_TOKENS,
+      system: SYSTEM_PROMPT,
+      messages,
+    });
+    usage.inputTokens += response.usage.input_tokens;
+    usage.outputTokens += response.usage.output_tokens;
+    const textBlock = response.content.find((b) => b.type === "text");
+    const text = textBlock && textBlock.type === "text" ? textBlock.text.trim() : "";
+    if (!text) {
+      throw new Error("Coach returned no text");
+    }
+    return text;
   };
+
+  const text = await ask();
+  // With a plan the numbers are in front of it and it should read them out.
+  if (context) return { text, usage, guard: "clean" };
+
+  const slipped = personalFigure(question, text);
+  if (!slipped) return { text, usage, guard: "clean" };
+
+  messages.push(
+    { role: "assistant", content: text },
+    {
+      role: "user",
+      content: `(Note from the app, not from the person: that reply gave "${slipped}", a figure for how much this person should eat, and you have no plan for them. Write the reply again, answering the same question, with no figure for their intake in any form — not as a range, not per kilo, not as an example about someone similar. Do not mention this note.)`,
+    },
+  );
+  const rewrite = await ask();
+  if (!personalFigure(question, rewrite)) return { text: rewrite, usage, guard: "rewritten" };
+
+  const fallback = HINDI_WORDS.test(question) ? FALLBACK.hinglish : FALLBACK.english;
+  return { text: fallback, usage, guard: "replaced" };
 }
 
 /** Rough rupee cost of one answer, for the usage log. Haiku 4.5: $1/M in, $5/M out. */
